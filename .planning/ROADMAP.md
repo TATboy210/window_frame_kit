@@ -11,7 +11,7 @@ window_frame_kit 用 6 个阶段把"双包并用的生态空白"变成 pub.dev �
 - Integer phases (1, 2, 3): Planned milestone work
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
-- [ ] **Phase 1: 包骨架与许可基座** - 三平台插件骨架 + MIT 双上游归属 + 上游合并路径，嫁接前合规锁死
+- [x] **Phase 1: 包骨架与许可基座** - 三平台插件骨架 + MIT 双上游归属 + 上游合并路径，嫁接前合规锁死 (completed 2026-09-04)
 - [ ] **Phase 2: Windows 基座移植** - window_manager 0.5.2 逐字移植，实机行为对等验证（嫁接前置门）
 - [ ] **Phase 3: Windows Frame 嫁接** - FrameController 单元嫁接：无边框 + 四边缩放 + 协作式 GETMINMAXINFO + 零 win32 依赖
 - [ ] **Phase 4: Linux + macOS 移植** - 三平台同步 v1：GTK/AppKit 分支同名 API 全通 + 实机冒烟
@@ -130,7 +130,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. 包骨架与许可基座 | 4/4 | In Progress|  |
+| 1. 包骨架与许可基座 | 4/4 | Complete    | 2026-09-04 |
 | 2. Windows 基座移植 | 0/TBD | Not started | - |
 | 3. Windows Frame 嫁接 | 0/TBD | Not started | - |
 | 4. Linux + macOS 移植 | 0/TBD | Not started | - |
