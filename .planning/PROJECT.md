@@ -30,7 +30,7 @@ Flutter 桌面窗口管理单包：一个包同时提供 **frame 接管**（无�
 - [ ] 适配最新 Flutter 3.47 / Dart 3.13
 - [ ] 修复 bitsdojo 已知缺陷：GETMINMAXINFO 无条件 return 0 架空 setMinimumSize 的问题（改为协作式）
 - [ ] 三平台同步 v1：Windows/Linux/macOS 均有插件分支并实机验证
-- [ ] pub.dev 发布就绪：LICENSE（含上游 MIT 归属）/README/example/CHANGELOG
+- [ ] pub.dev 发布就绪：LICENSE（含上游 MIT 归属）/README/example/CHANGELOG（Phase 1 已交付：LICENSE 三行叠加 + README Derivation 溯源 + CI pana 门；example 强化/CHANGELOG/API 文档 → Phase 5）
 
 ### Out of Scope
 
@@ -65,7 +65,8 @@ Flutter 桌面窗口管理单包：一个包同时提供 **frame 接管**（无�
 | window_manager 0.5.2 为底座 | API 全套 + 事件流完备 + 活跃维护；frame 代码量小适合嫁接，反向工程量大得多 | — Pending |
 | 三平台同步 v1 | 用户明确要求跨平台（与"适配全新 Flutter"一致）；避免 Windows-only 包的生态印象 | — Pending |
 | 全屏零闪屏 = 探索目标非硬指标 | 历史方案 A/B 均实机不理想；硬指标会无限期阻塞发布 | — Pending |
-| 包名 window_frame_kit | pub.dev 2026-09-04 核实未占用；语义直指核心价值 | — Pending |
+| 包名 window_frame_kit | pub.dev 2026-09-04 核实未占用；语义直指核心价值 | ✓ 落定（Phase 1：公开仓 TATboy210/window_frame_kit + pubspec 三字段 + channel 名四处一致） |
+| Pitfall-1 CMake 补丁为承重墙 | windows-latest 已是 windows-2025-vs2026 镜像（VS2026 捆绑 CMake 4.x），gtest min<3.5 硬错误本机与 CI 双侧复现 | ✓ `CMAKE_POLICY_VERSION_MINIMUM 3.5` 一行补丁不可删（Phase 1 A2 核对） |
 
 ## Evolution
 
@@ -85,4 +86,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-04 after initialization*
+*Last updated: 2026-09-04 after Phase 1（包骨架与许可基座：4/4 计划、验证 5/5 SC 通过、PUB-01 收口、公开仓上线 + 三平台 CI 守护）*

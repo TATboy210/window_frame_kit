@@ -23,7 +23,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-04)
 
 **Core value:** 一个包同时提供 frame 接管 + 完整事件流能力——用户不再需要在"无边框窗口"和"可监听窗口"之间二选一，也不再被上游锁死的 win32 5.x 拖累整个依赖树。
-**Current focus:** Phase 01 — 包骨架与许可基座
+**Current focus:** Phase 2 — Windows 基座移植
 
 ## Current Position
 
@@ -32,7 +32,7 @@ Plan: Not started
 Status: Ready to plan
 Last activity: 2026-09-04 — Phase 01 complete, transitioned to Phase 2
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [████████████████████] 4/4 plans (100% — Phase 01 complete; Phase 2 not started)
 
 ## Performance Metrics
 
