@@ -18,7 +18,7 @@ window_manager 0.5.2 的完整能力面（约 60 方法 + 15 事件名常量 + W
 ### Dart API 面保真度
 - **D-01:** 公开 API 标识符**全保真**——`windowManager` 单例、`WindowManager`/`WindowListener`/`WindowOptions`/`ResizeEdge`/`TitleBarStyle` 等全部与上游逐字相同。包身份由包名 `window_frame_kit` + channel 名承载，不改类名。收益：宿主 Phase 6 迁移≈只换 import 行；SC5 逐字 diff 噪音最小（只剩 channel 常量与 import 路径两类必要偏离）；上游未来修复可直接 cherry-pick。 — **Reversibility:** costly — 后期改名要动全部宿主调用点、推翻 diff 证明基线并重写 DEVIATIONS.md 全部对应条目
 - **D-02:** 上游 `test/window_manager_test.dart` **逐字移植**（只改 import + channel 常量），叠加本包自有锚点断言：channel 名 `window_frame_kit` 与 15 个事件名常量逐字一致性（SC5 机器门）。 — **Reversibility:** reversible
-- **D-03:** 共存纪律 = **互斥换 import**：宿主迁移期依赖树可同时含两包，但同一 Dart 文件绝不同时 import `window_frame_kit` 与 `window_manager`——同名类冲突结构性不存在。写进 README 迁移说明，零额外代码；**不做**前缀别名兼容层（YAGNI）。 — **Reversibility:** reversible
+- **D-03 informational:** 共存纪律 = **互斥换 import**：宿主迁移期依赖树可同时含两包，但同一 Dart 文件绝不同时 import `window_frame_kit` 与 `window_manager`——同名类冲突结构性不存在。写进 README 迁移说明，零额外代码；**不做**前缀别名兼容层（YAGNI）。 — **Reversibility:** reversible [informational] Phase 2 无代码面：其唯一落点"README 迁移说明"属 Phase 5 PUB-02 范围（见 `<deferred>` 与 01-02 计划边界）；本 phase 各执行器仅需知晓纪律，无交付物，故不计入计划覆盖追踪
 
 ### 实机对等验证载体与节奏
 - **D-04:** 载体 = **上游 example 白拿**：example 三件（main.dart 71 行 / pages/home.dart 1089 行·122 处 API 调用 / utils/config.dart）逐字移植为起点（只改 import + channel）；11 个 WindowListener hook 用 `debugPrint` 打**控制台事件日志**（时间戳 + 事件名 + 关键参数）。**零新增 UI 代码**——用户明确否决屏上日志面板（"只是做一个 flutter 依赖，没必要这么复杂"）。事件验证看控制台、窗口行为看目视（宿主 UAT 证据标准）。Phase 4 三平台直接复用同一载体。 — **Reversibility:** reversible
