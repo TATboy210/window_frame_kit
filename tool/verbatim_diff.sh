@@ -9,7 +9,9 @@
 # main.dart 特例（D-04/Open Q2 定案）：先滤除事件日志注册行
 # （含 window_event_logger / WindowEventLogger，大小写不敏感），滤除行数必须恰为 2。
 #
-# B 段（C++ 精确残留行数断言 22+2）由 02-02 追加，本版本不含 cpp 检查。
+# B 段（C++ 精确残留行数断言 22+2，02-02 落定）：残留行 = DEVIATIONS.md 记账的
+# 结构偏离（plugin.cpp 3 hunk：L1 include / L112 channel / 尾块桥接；
+# window_manager.cpp 1 hunk：L1 include）——任何行数漂移即禁改区被触碰，红灯重审。
 set -u
 WM="${1:?usage: verbatim_diff.sh <window_manager-0.5.2 dir>}"
 fail=0
@@ -57,7 +59,19 @@ if ! diff <(grep -viE 'window_event_logger|windoweventlogger' example/lib/main.d
   fail=1
 fi
 
+# B. C++ 面——精确残留行数（结构偏离已记 DEVIATIONS.md ②③④，改动即重审）
+n1=$(diff windows/window_frame_kit_plugin.cpp "$WM/windows/window_manager_plugin.cpp" | grep -c '^[<>]')
+n2=$(diff windows/window_manager.cpp "$WM/windows/window_manager.cpp" | grep -c '^[<>]')
+if [ "$n1" -ne 22 ]; then
+  echo "plugin.cpp residue $n1 != 22"
+  fail=1
+fi
+if [ "$n2" -ne 2 ]; then
+  echo "window_manager.cpp residue $n2 != 2"
+  fail=1
+fi
+
 if [ "$fail" -eq 0 ]; then
-  echo "VERBATIM PROOF OK (17 dart files zero-diff)"
+  echo "VERBATIM PROOF OK (17 dart files zero-diff, cpp residue 22+2)"
 fi
 exit "$fail"

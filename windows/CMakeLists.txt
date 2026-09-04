@@ -18,6 +18,7 @@ set(PLUGIN_NAME "window_frame_kit_plugin")
 
 # Any new source files that you add to the plugin should be added here.
 list(APPEND PLUGIN_SOURCES
+  "window_manager.cpp"            # 上游第二源文件（保留上游名；plugin.cpp:15 #include 之）
   "window_frame_kit_plugin.cpp"
   "window_frame_kit_plugin.h"
 )
@@ -41,6 +42,7 @@ apply_standard_settings(${PLUGIN_NAME})
 set_target_properties(${PLUGIN_NAME} PROPERTIES
   CXX_VISIBILITY_PRESET hidden)
 target_compile_definitions(${PLUGIN_NAME} PRIVATE FLUTTER_PLUGIN_IMPL)
+target_compile_definitions(${PLUGIN_NAME} PRIVATE _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING)
 
 # Source include directories and library dependencies. Add any plugin-specific
 # dependencies here.
@@ -88,6 +90,10 @@ add_executable(${TEST_RUNNER}
   ${PLUGIN_SOURCES}
 )
 apply_standard_settings(${TEST_RUNNER})
+# TEST_RUNNER compiles ${PLUGIN_SOURCES} directly (upstream has no native test
+# target, so this second define is a merge addition -- Pitfall 5: codecvt
+# C4996 under /W4 /WX would fail the gtest build otherwise).
+target_compile_definitions(${TEST_RUNNER} PRIVATE _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING)
 target_include_directories(${TEST_RUNNER} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries(${TEST_RUNNER} PRIVATE flutter_wrapper_plugin)
 target_link_libraries(${TEST_RUNNER} PRIVATE gtest_main gmock)
