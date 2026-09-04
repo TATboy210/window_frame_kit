@@ -59,6 +59,12 @@ Plans:
 
 **Plans**: TBD
 
+- [x] 02-01-PLAN.md
+- [ ] 02-02-PLAN.md
+- [ ] 02-03-PLAN.md
+- [ ] 02-04-PLAN.md
+- [ ] 02-05-PLAN.md
+
 ### Phase 3: Windows Frame 嫁接
 
 **Goal**: bitsdojo 的 frame 接管能力以独立 FrameController 形态嫁接进插件，作为**一个不可拆分的单元**落地：无边框 NCCALCSIZE 路线 + 四边原生缩放 + 协作式 GETMINMAXINFO（根治架空 setMinimumSize 的上游缺陷）+ 零 win32 Dart 依赖架构。Snap Layouts（HTMAXBUTTON）与可配置边缘宽度为 v2（DIFF-01/DIFF-02），不在本 roadmap。
@@ -131,7 +137,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. 包骨架与许可基座 | 4/4 | Complete    | 2026-09-04 |
-| 2. Windows 基座移植 | 0/TBD | Not started | - |
+| 2. Windows 基座移植 | 1/5 | In Progress|  |
 | 3. Windows Frame 嫁接 | 0/TBD | Not started | - |
 | 4. Linux + macOS 移植 | 0/TBD | Not started | - |
 | 5. Example 强化 + 发布 0.1.0 | 0/TBD | Not started | - |
