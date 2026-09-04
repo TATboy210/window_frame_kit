@@ -83,9 +83,13 @@ jobs:
           flutter-version: "3.47.2"
           cache: true
       - run: dart pub global activate pana
-      # D-08 已钉死（2026-09-04，CI 首跑 run 33873676570）：基线 150/160
-      # → threshold = 满分 160 − 基线 150 = 10（pana 语义：(max−granted) > threshold
-      # 才非零退出——基线本身通过，任何降分即红）。唯一扣分项：pubspec description
-      # 超 pana 180 字符建议长度（0/10）；骨架期按 D-03 定稿措辞保留，Phase 5 发布门
-      # （PUB-04）复核精简后须同步把 threshold 重钉为 160 − 新基线。
-      - run: dart pub global run pana:pana --exit-code-threshold 10 .
+      # D-08 钉死机制（pana 语义：(max−granted) > threshold 才非零退出——基线本身
+      # 通过，任何进一步降分即红）。Phase 1 基线 150/160 → threshold 10。
+      # Phase 2 重钉（02-01 A3 首推验证，CI run 33906880498）：基线 140/160
+      # → threshold = 160 − 140 = 20。两项已知扣分：① pubspec description 超 180
+      # 字符建议长度（0/10，Phase 5 PUB-04 精简）② 逐字区 lib/src 文件不匹配
+      # tall-style formatter（40/50，D-01/SC5 字节级 verbatim 的结构性代价——
+      # pana 的 format 检查无豁免机制，格式化逐字区即毁 SC5，02-RESEARCH
+      # Pitfall 1/Alternatives 已裁决豁免）。Phase 5 description 精简后按
+      # WINDOWS.md #5 流程重钉为 160 − 新基线。
+      - run: dart pub global run pana:pana --exit-code-threshold 20 .
