@@ -1,0 +1,72 @@
+# CI 骨架期工作流（D-05~D-08 载体）
+# - D-05：三平台全量矩阵并行（windows/ubuntu/macos runner）
+# - D-06：触发 = push 到 master + 所有 PR（pull_request 不限分支）
+# - D-07：每平台四项检查 ① analyze+format ② test ③ pana（独立 ubuntu job）④ native build
+# - D-08：pana 用 --exit-code-threshold 设通过线（非满分级）
+# 明确不含：publish 步骤、任何 secrets 引用、melos/第三方 pana 包装 action（研究 SotA 弃用清单）。
+name: ci
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  checks:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: "3.47.2" # 钉版本保证可复现（与本机验证环境一致）
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: dart format --set-exit-if-changed --output=none .
+      - run: flutter test
+      # ④ native build：插件根的 windows/linux/ 是 library-only CMake 壳、macos/ 是 podspec，
+      # 不能作为独立应用构建——编译宿主是 example/（上游 window_manager build.yml 同款
+      # working-directory 做法）。Pitfall 3 CI 变体预防：全新 configure 可能不生成
+      # example/build/native_assets/windows，INSTALL 步骤会因目录缺失报错，先 mkdir 兜底。
+      - name: Pre-create native_assets dir (windows, Pitfall 3)
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        run: mkdir -p example/build/native_assets/windows
+      - name: Native build (windows)
+        if: matrix.os == 'windows-latest'
+        working-directory: example
+        run: flutter build windows --release
+      - name: Install Linux toolchain deps
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev
+      - name: Native build (linux)
+        if: matrix.os == 'ubuntu-latest'
+        working-directory: example
+        run: flutter build linux --release
+      - name: Native build (macos)
+        if: matrix.os == 'macos-latest'
+        working-directory: example
+        run: flutter build macos --release
+
+  # ③ pana 评分门：Pitfall 4——pana 0.23.x 的 sandbox 在 Windows 盘符路径必崩，仅进 ubuntu。
+  pana:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: "3.47.2"
+          cache: true
+      - run: dart pub global activate pana
+      # 60 = 骨架期临时通过线（即分数下限 100/160，D-08：通过线而非满分级）。
+      # CI 首跑记录真实基线后按 threshold = 满分 − 基线 钉死并回填此值；
+      # 若 pana 汇总报告的满分非 160，以报告值为准。
+      - run: dart pub global run pana:pana --exit-code-threshold 60 .
