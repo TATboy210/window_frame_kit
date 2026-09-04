@@ -39,7 +39,7 @@ v1 = "能替换宿主项目双包架构" + "pub.dev 上站得住"。技术路线
 
 ### 发布就绪
 
-- [ ] **PUB-01**: LICENSE 叠加双上游 MIT 归属——window_manager 与 bitsdojo 版权声明逐字保留（pub.dev 不验证，须自查）
+- [x] **PUB-01**: LICENSE 叠加双上游 MIT 归属——window_manager 与 bitsdojo 版权声明逐字保留（pub.dev 不验证，须自查）
 - [ ] **PUB-02**: README——含双包迁移映射表（appWindow.minSize → controller.setMinimumSize 等，替代兼容层）+ 与官方 windowing API 分工说明
 - [ ] **PUB-03**: example app——演示全 API 面，兼作集成测试宿主
 - [ ] **PUB-04**: 发布管线——CHANGELOG + 语义化版本 + pana 静态检查通过 + `flutter pub publish --dry-run` 通过
@@ -81,7 +81,7 @@ v1 = "能替换宿主项目双包架构" + "pub.dev 上站得住"。技术路线
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PUB-01 | Phase 1 | Pending |
+| PUB-01 | Phase 1 | Complete |
 | CAPB-01 | Phase 2 | Pending |
 | CAPB-02 | Phase 2 | Pending |
 | CAPB-03 | Phase 2 | Pending |
@@ -109,11 +109,13 @@ v1 = "能替换宿主项目双包架构" + "pub.dev 上站得住"。技术路线
 | HOST-01 | Phase 6 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 26 total（2026-09-04 修正：原"22 total"为计数笔误）
 - Mapped to phases: 26
 - Unmapped: 0 ✓
 
 映射说明：
+
 - PUB-01 → Phase 1：Pitfall 2 要求 LICENSE stack 在首个含嫁接代码的 commit 之前落盘；Phase 5 发布门会再次复核归属
 - XPLAT-02 → Phase 3：pubspec 依赖约束从 Phase 1 骨架期生效，完成验证随 Frame 嫁接单元落地
 - XPLAT-01 → Phase 4：三平台分支齐备后"适配最新 Flutter/Dart"才可完整验证

@@ -2,17 +2,17 @@
 gsd_state_version: 1.0
 current_phase: 01
 current_phase_name: 包骨架与许可基座
-status: executing
-stopped_at: Completed 01-03-PLAN.md
-last_updated: "2026-09-04T12:06:17.663Z"
+status: verifying
+stopped_at: Completed 01-04-PLAN.md
+last_updated: "2026-09-04T13:15:59.931Z"
 last_activity: 2026-09-04
 last_activity_desc: Phase 01 execution started
-state_head: ee91a58a8fe24b04d225fa578d06bb5b3ccb9386
+state_head: 4bb91a3dd3ad612c466b4d782ff1640bf03654ca
 progress:
   total_phases: 6
   completed_phases: 0
   total_plans: 4
-  completed_plans: 3
+  completed_plans: 4
   percent: 0
 ---
 
@@ -29,7 +29,7 @@ See: .planning/PROJECT.md (updated 2026-09-04)
 
 Phase: 01 (包骨架与许可基座) — EXECUTING
 Plan: 4 of 4
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-09-04 — Phase 01 execution started
 
 Progress: [░░░░░░░░░░] 0%
@@ -61,6 +61,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 1 P01 | 22 min | 2 tasks | 92 files |
 | Phase 01 P02 | 40 min | 3 tasks | 3 files |
 | Phase 01 P03 | 30 min | 2 tasks | 1 files |
+| Phase 01 P04 | 38 min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -82,6 +83,9 @@ Recent decisions affecting current work:
 - [Phase 01]: PUB-01 勾选走 shared-ID gate：四个计划均声明，REQUIREMENTS.md 待 01-04 完成后由 ready-ids 放行（本计划 SUMMARY 记录交付事实）
 - [Phase 01]: Pitfall-1 补丁最小面：仅一行 CMAKE_POLICY_VERSION_MINIMUM 3.5 落插件根 windows/CMakeLists.txt（gtest FetchContent 前），PLUGIN_NAME/目标名/PLUGIN_SOURCES 不动；CI 首跑即使不复现 gtest 坑补丁仍保留（本机 VS2026/CMake4 必需）
 - [Phase 01]: SC1 双边门交付：构建半边自动化（grep+exe 断言）+ 人工半边三项 human-check 用户 approved；实机观察'快速拖拽左缘 resize 右缘毫秒级空白'按用户裁决记为 Phase 3 基线观察（裸模板窗口路径，非本计划缺陷）——WINDOWS.md #4 挂账，frame 接管后复测并诊断根因
+- [Phase 01]: pana threshold 钉死 10（满分160−首跑基线150，D-08）；唯一扣分=description 超180字符建议长度，骨架期保留 D-03 措辞，Phase 5 PUB-04 精简后重钉
+- [Phase 01]: A2 核对=假：windows-latest 已是 windows-2025-vs2026 镜像（VS2026 捆绑 CMake 4.x），Pitfall-1 的 CMAKE_POLICY_VERSION_MINIMUM 补丁为 CI windows leg 必需，不可删
+- [Phase 01]: CI native build 用 working-directory: example（插件根为 library-only CMake 壳，上游 WM build.yml 同款）；双 remote 仓库中 gh CLI 解析选错仓库，一律显式 -R TATboy210/window_frame_kit
 
 ### Pending Todos
 
@@ -104,6 +108,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-09-04T12:05:33.963Z
-Stopped at: Completed 01-03-PLAN.md
+Last session: 2026-09-04T13:15:59.862Z
+Stopped at: Completed 01-04-PLAN.md
 Resume file: None

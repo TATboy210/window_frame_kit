@@ -34,14 +34,14 @@ window_frame_kit 用 6 个阶段把"双包并用的生态空白"变成 pub.dev �
   4. pubspec 依赖仅 path + screen_retriever（C++-only 零 win32 依赖决策从骨架期生效）；channel 名为 `window_frame_kit`（绝不复用 `window_manager`）
   5. pana 与 `dart pub publish --dry-run` 在骨架期即可跑通，并接入 CI（发布分数从第一天开始守护）
 
-**Plans**: 3/4 plans executed
+**Plans**: 4/4 plans executed
 
 Plans:
 
 - [x] 01-01-PLAN.md — 插件骨架落地 + 包身份与依赖白名单 + 发布门首绿（tracer 纵切）
 - [x] 01-02-PLAN.md — MIT 双上游归属 LICENSE + README Derivation + DEVIATIONS.md 账本 + upstream remote（PUB-01）
 - [x] 01-03-PLAN.md — Windows 构建门（CMake Pitfall-1 补丁 + release 构建）+ example 实机启动确认（SC1）
-- [ ] 01-04-PLAN.md — CI 三平台矩阵（D-05~08）+ GitHub 建仓推送（D-01）+ pana 基线钉死（SC5）
+- [x] 01-04-PLAN.md — CI 三平台矩阵（D-05~08）+ GitHub 建仓推送（D-01）+ pana 基线钉死（SC5）
 
 ### Phase 2: Windows 基座移植
 
@@ -130,7 +130,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. 包骨架与许可基座 | 3/4 | In Progress|  |
+| 1. 包骨架与许可基座 | 4/4 | In Progress|  |
 | 2. Windows 基座移植 | 0/TBD | Not started | - |
 | 3. Windows Frame 嫁接 | 0/TBD | Not started | - |
 | 4. Linux + macOS 移植 | 0/TBD | Not started | - |
