@@ -1,18 +1,18 @@
 ---
 gsd_state_version: 1.0
-current_phase: 1
+current_phase: 01
 current_phase_name: 包骨架与许可基座
 status: executing
-stopped_at: Completed 01-01-PLAN.md
-last_updated: "2026-09-04T10:01:53.758Z"
+stopped_at: Completed 01-02-PLAN.md
+last_updated: "2026-09-04T11:30:57.469Z"
 last_activity: 2026-09-04
-last_activity_desc: Phase 1 execution started
-state_head: 064fdb07c91a09ab73be01fe424cef15bfd025ff
+last_activity_desc: Phase 01 execution started
+state_head: a0bead7cc1d05ed838adb518bc06db0919498e45
 progress:
   total_phases: 6
   completed_phases: 0
   total_plans: 4
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -23,14 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-09-04)
 
 **Core value:** 一个包同时提供 frame 接管 + 完整事件流能力——用户不再需要在"无边框窗口"和"可监听窗口"之间二选一，也不再被上游锁死的 win32 5.x 拖累整个依赖树。
-**Current focus:** Phase 1 — 包骨架与许可基座
+**Current focus:** Phase 01 — 包骨架与许可基座
 
 ## Current Position
 
-Phase: 1 (包骨架与许可基座) — EXECUTING
-Plan: 2 of 4
+Phase: 01 (包骨架与许可基座) — EXECUTING
+Plan: 3 of 4
 Status: Ready to execute
-Last activity: 2026-09-04 — Phase 1 execution started
+Last activity: 2026-09-04 — Phase 01 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -59,6 +59,7 @@ Progress: [░░░░░░░░░░] 0%
 | Plan | Duration | Tasks | Files |
 |------|----------|-------|-------|
 | Phase 1 P01 | 22 min | 2 tasks | 92 files |
+| Phase 01 P02 | 40 min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -75,6 +76,9 @@ Recent decisions affecting current work:
 - [Phase 1]: 依赖白名单按意图执行：plugin_platform_interface 作为模板平台接口层计入白名单（非 win32），Phase 2 移植后复核删除
 - [Phase 1]: sdk floor 骨架期保留 ^3.13.2 保守值并注释 Phase 4 复核放宽（Pitfall 8，与验证环境一致零虚报）
 - [Phase 1]: dry-run 0-warnings 门要求先 commit 再跑：pub git-status 检查把未提交 pubspec/podspec/生成件计为 1 warning（本机实测补全研究盲点）
+- [Phase 01]: DEVIATIONS.md 账本按 D-09 裁量区落定：英文六列表格 + 三条记账规则，验收核验后原样提交前会话版本（不重写）
+- [Phase 01]: LICENSE 逐字性双证据链：grep -cx 三连整行门 + 与 pub cache 上游正文 diff（逐行一致，唯一差异为上游缺 EOF 尾换行）
+- [Phase 01]: PUB-01 勾选走 shared-ID gate：四个计划均声明，REQUIREMENTS.md 待 01-04 完成后由 ready-ids 放行（本计划 SUMMARY 记录交付事实）
 
 ### Pending Todos
 
@@ -97,6 +101,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-09-04T10:01:53.723Z
-Stopped at: Completed 01-01-PLAN.md
+Last session: 2026-09-04T11:28:08.156Z
+Stopped at: Completed 01-02-PLAN.md
 Resume file: None
