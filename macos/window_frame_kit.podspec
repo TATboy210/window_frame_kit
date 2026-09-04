@@ -5,13 +5,14 @@
 Pod::Spec.new do |s|
   s.name             = 'window_frame_kit'
   s.version          = '0.0.1'
-  s.summary          = 'A new Flutter plugin project.'
+  # 占位符清理（研究 Pitfall 7）：summary/description 与 pubspec description 同义
+  s.summary          = 'Frame takeover and complete window management for Flutter desktop apps.'
   s.description      = <<-DESC
-A new Flutter plugin project.
+Frame takeover and complete window management events for Flutter desktop apps (Windows, Linux, macOS): frameless windows, four-edge native resizing, and full window-manager parity APIs.
                        DESC
-  s.homepage         = 'http://example.com'
+  s.homepage         = 'https://github.com/TATboy210/window_frame_kit'
   s.license          = { :file => '../LICENSE' }
-  s.author           = { 'Your Company' => 'email@example.com' }
+  s.author           = { 'TATboy210' => '354900184@qq.com' }
 
   s.source           = { :path => '.' }
   s.source_files = 'window_frame_kit/Sources/window_frame_kit/**/*'

@@ -1,15 +1,36 @@
 name: window_frame_kit
-description: "A new Flutter plugin project."
+# D-03：英文 description，覆盖 frameless / frame takeover / window management /
+# events / Windows / Linux / macOS 关键词（研究 Example 2 已验证 0-warnings 措辞）。
+description: >-
+  Frame takeover and complete window management events for Flutter desktop
+  apps (Windows, Linux, macOS): frameless windows, four-edge native resizing,
+  and full window-manager parity APIs.
 version: 0.0.1
-homepage:
+# D-01：三字段同指 github.com/TATboy210/window_frame_kit（one-way 决策，落盘即锁）
+homepage: https://github.com/TATboy210/window_frame_kit
+repository: https://github.com/TATboy210/window_frame_kit
+issue_tracker: https://github.com/TATboy210/window_frame_kit/issues
+
+# D-04：topics 全量 5 个（pub.dev 上限 5 个）
+topics:
+  - desktop
+  - window
+  - window-manager
+  - frameless
+  - custom-titlebar
 
 environment:
+  # Phase 4 按依赖链复核放宽（骨架期保守值与验证环境一致、零虚报——研究 Pitfall 8）
   sdk: ^3.13.2
   flutter: '>=3.3.0'
 
 dependencies:
   flutter:
     sdk: flutter
+  # 依赖白名单（XPLAT-02 骨架期生效条款）：直接依赖仅以下三项，任何 win32 出现即违规
+  path: ^1.9.1
+  screen_retriever: ^0.2.2
+  # 模板 Dart 平台接口层（非 win32）；Phase 2 移植 WM 单文件 facade 后复核删除
   plugin_platform_interface: ^2.0.2
 
 dev_dependencies:
