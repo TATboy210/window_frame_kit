@@ -66,7 +66,9 @@ jobs:
           flutter-version: "3.47.2"
           cache: true
       - run: dart pub global activate pana
-      # 60 = 骨架期临时通过线（即分数下限 100/160，D-08：通过线而非满分级）。
-      # CI 首跑记录真实基线后按 threshold = 满分 − 基线 钉死并回填此值；
-      # 若 pana 汇总报告的满分非 160，以报告值为准。
-      - run: dart pub global run pana:pana --exit-code-threshold 60 .
+      # D-08 已钉死（2026-09-04，CI 首跑 run 33873676570）：基线 150/160
+      # → threshold = 满分 160 − 基线 150 = 10（pana 语义：(max−granted) > threshold
+      # 才非零退出——基线本身通过，任何降分即红）。唯一扣分项：pubspec description
+      # 超 pana 180 字符建议长度（0/10）；骨架期按 D-03 定稿措辞保留，Phase 5 发布门
+      # （PUB-04）复核精简后须同步把 threshold 重钉为 160 − 新基线。
+      - run: dart pub global run pana:pana --exit-code-threshold 10 .
