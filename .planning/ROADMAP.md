@@ -30,7 +30,13 @@ window_frame_kit 用 6 个阶段把"双包并用的生态空白"变成 pub.dev �
   3. `git remote -v` 显示 upstream remote（window_manager 仓库）；DEVIATIONS.md 存在且定义好偏差条目格式（上游 file:line 锚点 + 偏离理由）
   4. pubspec 依赖仅 path + screen_retriever（C++-only 零 win32 依赖决策从骨架期生效）；channel 名为 `window_frame_kit`（绝不复用 `window_manager`）
   5. pana 与 `dart pub publish --dry-run` 在骨架期即可跑通，并接入 CI（发布分数从第一天开始守护）
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — 插件骨架落地 + 包身份与依赖白名单 + 发布门首绿（tracer 纵切）
+- [ ] 01-02-PLAN.md — MIT 双上游归属 LICENSE + README Derivation + DEVIATIONS.md 账本 + upstream remote（PUB-01）
+- [ ] 01-03-PLAN.md — Windows 构建门（CMake Pitfall-1 补丁 + release 构建）+ example 实机启动确认（SC1）
+- [ ] 01-04-PLAN.md — CI 三平台矩阵（D-05~08）+ GitHub 建仓推送（D-01）+ pana 基线钉死（SC5）
 
 ### Phase 2: Windows 基座移植
 **Goal**: window_manager 0.5.2 的完整能力面（约 60 方法 + 15 事件名 + WindowListener）在 Windows 上逐字移植并通过实机行为对等验证。嫁接必须落在一块已被证明与上游一致的地基上——否则移植回归与嫁接回归无法区分。**退出门：对等验证通过之前不得开始任何嫁接。**
@@ -104,7 +110,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. 包骨架与许可基座 | 0/TBD | Not started | - |
+| 1. 包骨架与许可基座 | 0/4 | Not started | - |
 | 2. Windows 基座移植 | 0/TBD | Not started | - |
 | 3. Windows Frame 嫁接 | 0/TBD | Not started | - |
 | 4. Linux + macOS 移植 | 0/TBD | Not started | - |
