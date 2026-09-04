@@ -81,13 +81,43 @@ v1 = "能替换宿主项目双包架构" + "pub.dev 上站得住"。技术路线
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (由 roadmap 创建时填充) | | |
+| PUB-01 | Phase 1 | Pending |
+| CAPB-01 | Phase 2 | Pending |
+| CAPB-02 | Phase 2 | Pending |
+| CAPB-03 | Phase 2 | Pending |
+| CAPB-04 | Phase 2 | Pending |
+| CAPB-05 | Phase 2 | Pending |
+| CAPB-06 | Phase 2 | Pending |
+| CAPB-07 | Phase 2 | Pending |
+| CAPB-08 | Phase 2 | Pending |
+| CAPB-09 | Phase 2 | Pending |
+| CAPB-10 | Phase 2 | Pending |
+| CAPB-11 | Phase 2 | Pending |
+| CAPB-12 | Phase 2 | Pending |
+| FRAME-01 | Phase 3 | Pending |
+| FRAME-02 | Phase 3 | Pending |
+| FRAME-03 | Phase 3 | Pending |
+| FRAME-04 | Phase 3 | Pending |
+| XPLAT-02 | Phase 3 | Pending |
+| XPLAT-03 | Phase 3 | Pending |
+| XPLAT-01 | Phase 4 | Pending |
+| XPLAT-04 | Phase 4 | Pending |
+| XPLAT-05 | Phase 4 | Pending |
+| PUB-02 | Phase 5 | Pending |
+| PUB-03 | Phase 5 | Pending |
+| PUB-04 | Phase 5 | Pending |
+| HOST-01 | Phase 6 | Pending |
 
 **Coverage:**
-- v1 requirements: 22 total
-- Mapped to phases: 0
-- Unmapped: 22 ⚠️ (roadmap 未创建)
+- v1 requirements: 26 total（2026-09-04 修正：原"22 total"为计数笔误）
+- Mapped to phases: 26
+- Unmapped: 0 ✓
+
+映射说明：
+- PUB-01 → Phase 1：Pitfall 2 要求 LICENSE stack 在首个含嫁接代码的 commit 之前落盘；Phase 5 发布门会再次复核归属
+- XPLAT-02 → Phase 3：pubspec 依赖约束从 Phase 1 骨架期生效，完成验证随 Frame 嫁接单元落地
+- XPLAT-01 → Phase 4：三平台分支齐备后"适配最新 Flutter/Dart"才可完整验证
 
 ---
 *Requirements defined: 2026-09-04*
-*Last updated: 2026-09-04 after initial definition*
+*Last updated: 2026-09-04 roadmap 创建时填充 Traceability*
