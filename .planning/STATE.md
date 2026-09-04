@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 current_phase: 01
 current_phase_name: 包骨架与许可基座
 status: executing
-stopped_at: Completed 01-02-PLAN.md
-last_updated: "2026-09-04T11:30:57.469Z"
+stopped_at: Completed 01-03-PLAN.md
+last_updated: "2026-09-04T12:06:17.663Z"
 last_activity: 2026-09-04
 last_activity_desc: Phase 01 execution started
-state_head: a0bead7cc1d05ed838adb518bc06db0919498e45
+state_head: ee91a58a8fe24b04d225fa578d06bb5b3ccb9386
 progress:
   total_phases: 6
   completed_phases: 0
   total_plans: 4
-  completed_plans: 2
+  completed_plans: 3
   percent: 0
 ---
 
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-09-04)
 ## Current Position
 
 Phase: 01 (包骨架与许可基座) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-09-04 — Phase 01 execution started
 
@@ -60,6 +60,7 @@ Progress: [░░░░░░░░░░] 0%
 |------|----------|-------|-------|
 | Phase 1 P01 | 22 min | 2 tasks | 92 files |
 | Phase 01 P02 | 40 min | 3 tasks | 3 files |
+| Phase 01 P03 | 30 min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -79,6 +80,8 @@ Recent decisions affecting current work:
 - [Phase 01]: DEVIATIONS.md 账本按 D-09 裁量区落定：英文六列表格 + 三条记账规则，验收核验后原样提交前会话版本（不重写）
 - [Phase 01]: LICENSE 逐字性双证据链：grep -cx 三连整行门 + 与 pub cache 上游正文 diff（逐行一致，唯一差异为上游缺 EOF 尾换行）
 - [Phase 01]: PUB-01 勾选走 shared-ID gate：四个计划均声明，REQUIREMENTS.md 待 01-04 完成后由 ready-ids 放行（本计划 SUMMARY 记录交付事实）
+- [Phase 01]: Pitfall-1 补丁最小面：仅一行 CMAKE_POLICY_VERSION_MINIMUM 3.5 落插件根 windows/CMakeLists.txt（gtest FetchContent 前），PLUGIN_NAME/目标名/PLUGIN_SOURCES 不动；CI 首跑即使不复现 gtest 坑补丁仍保留（本机 VS2026/CMake4 必需）
+- [Phase 01]: SC1 双边门交付：构建半边自动化（grep+exe 断言）+ 人工半边三项 human-check 用户 approved；实机观察'快速拖拽左缘 resize 右缘毫秒级空白'按用户裁决记为 Phase 3 基线观察（裸模板窗口路径，非本计划缺陷）——WINDOWS.md #4 挂账，frame 接管后复测并诊断根因
 
 ### Pending Todos
 
@@ -101,6 +104,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-09-04T11:28:08.156Z
-Stopped at: Completed 01-02-PLAN.md
+Last session: 2026-09-04T12:05:33.963Z
+Stopped at: Completed 01-03-PLAN.md
 Resume file: None
