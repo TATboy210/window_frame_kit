@@ -1,11 +1,28 @@
+import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/material.dart';
-
-import 'dart:async';
-
-import 'package:flutter/services.dart';
 import 'package:window_frame_kit/window_frame_kit.dart';
+import 'package:window_frame_kit_example/pages/home.dart';
+import 'package:window_frame_kit_example/utils/config.dart';
+import 'package:window_frame_kit_example/utils/window_event_logger.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await windowManager.ensureInitialized();
+  windowManager.addListener(WindowEventLogger());
+
+  WindowOptions windowOptions = const WindowOptions(
+    size: Size(800, 600),
+    center: true,
+    backgroundColor: Colors.transparent,
+    skipTaskbar: false,
+    titleBarStyle: TitleBarStyle.hidden,
+    windowButtonVisibility: false,
+  );
+  windowManager.waitUntilReadyToShow(windowOptions, () async {
+    await windowManager.show();
+    await windowManager.focus();
+  });
+
   runApp(const MyApp());
 }
 
@@ -17,45 +34,40 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  String _platformVersion = 'Unknown';
-  final _windowFrameKitPlugin = WindowFrameKit();
+  ThemeMode _themeMode = ThemeMode.light;
 
   @override
   void initState() {
+    sharedConfigManager.addListener(_configListen);
     super.initState();
-    initPlatformState();
   }
 
-  // Platform messages are asynchronous, so we initialize in an async method.
-  Future<void> initPlatformState() async {
-    String platformVersion;
-    // Platform messages may fail, so we use a try/catch PlatformException.
-    // We also handle the message potentially returning null.
-    try {
-      platformVersion =
-          await _windowFrameKitPlugin.getPlatformVersion() ??
-          'Unknown platform version';
-    } on PlatformException {
-      platformVersion = 'Failed to get platform version.';
-    }
+  @override
+  void dispose() {
+    sharedConfigManager.removeListener(_configListen);
+    super.dispose();
+  }
 
-    // If the widget was removed from the tree while the asynchronous platform
-    // message was in flight, we want to discard the reply rather than calling
-    // setState to update our non-existent appearance.
-    if (!mounted) return;
-
-    setState(() {
-      _platformVersion = platformVersion;
-    });
+  void _configListen() {
+    _themeMode = sharedConfig.themeMode;
+    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
+    final virtualWindowFrameBuilder = VirtualWindowFrameInit();
+    final botToastBuilder = BotToastInit();
+
     return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(title: const Text('Plugin example app')),
-        body: Center(child: Text('Running on: $_platformVersion\n')),
-      ),
+      debugShowCheckedModeBanner: false,
+      themeMode: _themeMode,
+      builder: (context, child) {
+        child = virtualWindowFrameBuilder(context, child);
+        child = botToastBuilder(context, child);
+        return child;
+      },
+      navigatorObservers: [BotToastNavigatorObserver()],
+      home: const HomePage(),
     );
   }
 }

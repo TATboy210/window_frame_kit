@@ -27,11 +27,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  # 依赖白名单（XPLAT-02 骨架期生效条款）：直接依赖仅以下三项，任何 win32 出现即违规
+  # 依赖白名单（XPLAT-02 骨架期生效条款）：直接依赖仅以下两项，任何 win32 出现即违规
   path: ^1.9.1
   screen_retriever: ^0.2.2
-  # 模板 Dart 平台接口层（非 win32）；Phase 2 移植 WM 单文件 facade 后复核删除
-  plugin_platform_interface: ^2.0.2
 
 dev_dependencies:
   flutter_test:

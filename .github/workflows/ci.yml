@@ -27,8 +27,23 @@ jobs:
           cache: true
       - run: flutter pub get
       - run: flutter analyze
-      - run: dart format --set-exit-if-changed --output=none .
+      # format 门双轨化（02-RESEARCH Pitfall 1）：逐字区文件字节=上游 window_manager 0.5.2
+      # （本包 LV3.13 tall-style 与上游 short-style 结构性冲突），豁免格式化；
+      # 正名单只查新码区文件。逐字性由下方 verbatim-diff 步持续守护。
+      - run: >-
+          dart format --set-exit-if-changed --output=none
+          test/channel_contract_test.dart
+          example/lib/utils/window_event_logger.dart
+          example/test/widget_test.dart
       - run: flutter test
+      # SC5 机器门（02-RESEARCH Open Q3 定案进 CI）：curl 官方 pub.dev archive 为对照源，
+      # sed 归一化后 17 个 Dart 逐字区文件零差；任何 IDE format-on-save/顺手改动即时红灯。
+      - name: Verbatim diff vs upstream window_manager 0.5.2 (ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          mkdir -p /tmp/wm052
+          curl -sL https://pub.dev/api/archives/window_manager-0.5.2.tar.gz | tar xz -C /tmp/wm052
+          bash tool/verbatim_diff.sh /tmp/wm052
       # ④ native build：插件根的 windows/linux/ 是 library-only CMake 壳、macos/ 是 podspec，
       # 不能作为独立应用构建——编译宿主是 example/（上游 window_manager build.yml 同款
       # working-directory 做法）。Pitfall 3 CI 变体预防：全新 configure 可能不生成
@@ -45,7 +60,9 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev
+          # libayatana-appindicator3-dev：tray_manager linux CMakeLists 硬依赖
+          # （无 ayatana/appindicator 即 FATAL_ERROR——02-RESEARCH Pitfall 12/A1）
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev libayatana-appindicator3-dev
       - name: Native build (linux)
         if: matrix.os == 'ubuntu-latest'
         working-directory: example
