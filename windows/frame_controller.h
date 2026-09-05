@@ -20,12 +20,15 @@
 
 namespace window_frame_kit {
 
-// // FRAME: lParam cursor-Y extraction (windowsx.h GET_Y_LPARAM equivalent).
-// windowsx.h itself is deliberately NOT included: it defines function-like
-// macros such as `IsMaximized(hwnd) -> IsZoomed(hwnd)` which would hijack the
-// verbatim upstream `window_manager->IsMaximized()` method calls in the same
-// translation unit and break the build. Signed short keeps multi-monitor
-// negative coordinates intact.
+// // FRAME: lParam cursor-X/Y extraction (windowsx.h GET_X/Y_LPARAM
+// equivalents). windowsx.h itself is deliberately NOT included: it defines
+// function-like macros such as `IsMaximized(hwnd) -> IsZoomed(hwnd)` which
+// would hijack the verbatim upstream `window_manager->IsMaximized()` method
+// calls in the same translation unit and break the build. Signed short keeps
+// multi-monitor negative coordinates intact.
+inline LONG FrameXFromLParam(LPARAM lParam) {
+  return static_cast<SHORT>(LOWORD(lParam));
+}
 inline LONG FrameYFromLParam(LPARAM lParam) {
   return static_cast<SHORT>(HIWORD(lParam));
 }
@@ -52,10 +55,18 @@ inline void FrameApplyEdgeBands(RECT* rect, int band) {
 /// bands are real NC area (served by DefWindowProc), but the top band is
 /// only 1px - too thin to grab - so the delegate maps cursor positions in
 /// the top `band` px of the client to HTTOP (bitsdojo's self-computed
-/// NCHITTEST approach, minus its missing fullscreen guard).
-inline std::optional<LONG> FrameTopBandHitTest(LONG y, const RECT& rect,
-                                               int band) {
+/// NCHITTEST approach, minus its missing fullscreen guard). Corner codes
+/// win when the cursor is also inside the side bands, so the top corners
+/// behave exactly like the native side-band corners.
+inline std::optional<LONG> FrameTopBandHitTest(LONG x, LONG y,
+                                               const RECT& rect, int band) {
   if (y >= rect.top && y <= rect.top + band) {
+    if (x <= rect.left + band) {
+      return HTTOPLEFT;
+    }
+    if (x >= rect.right - band) {
+      return HTTOPRIGHT;
+    }
     return HTTOP;
   }
   return std::nullopt;

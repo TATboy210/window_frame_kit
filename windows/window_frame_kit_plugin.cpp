@@ -201,10 +201,11 @@ std::optional<LRESULT> WindowManagerPlugin::HandleWindowProc(HWND hWnd,
           return window_manager->is_resizable_ ? HTCLIENT : HTNOWHERE;
         }
         const LONG y = window_frame_kit::FrameYFromLParam(lParam);
+        const LONG x = window_frame_kit::FrameXFromLParam(lParam);
         RECT rect;
         GetWindowRect(hWnd, &rect);
         const auto top = window_frame_kit::FrameTopBandHitTest(
-            y, rect, window_frame_kit::FrameEdgeWidthForWindow(hWnd));
+            x, y, rect, window_frame_kit::FrameEdgeWidthForWindow(hWnd));
         if (top.has_value()) {
           return *top;
         }

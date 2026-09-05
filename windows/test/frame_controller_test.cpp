@@ -32,12 +32,22 @@ TEST(FrameApplyEdgeBands, InsetsSidesEquallyTopOnePixel) {
 
 TEST(FrameTopBandHitTest, ClientTopBandMapsToHttop) {
   // Window top at y=200, 8px band: y in [200, 208] hits HTTOP.
-  EXPECT_EQ(*FrameTopBandHitTest(204, kWin, 8), HTTOP);
-  EXPECT_EQ(*FrameTopBandHitTest(200, kWin, 8), HTTOP);
-  EXPECT_EQ(*FrameTopBandHitTest(208, kWin, 8), HTTOP);
+  EXPECT_EQ(*FrameTopBandHitTest(500, 204, kWin, 8), HTTOP);
+  EXPECT_EQ(*FrameTopBandHitTest(500, 200, kWin, 8), HTTOP);
+  EXPECT_EQ(*FrameTopBandHitTest(500, 208, kWin, 8), HTTOP);
   // One pixel below the band: interior.
-  EXPECT_FALSE(FrameTopBandHitTest(209, kWin, 8).has_value());
-  EXPECT_FALSE(FrameTopBandHitTest(500, kWin, 8).has_value());
+  EXPECT_FALSE(FrameTopBandHitTest(500, 209, kWin, 8).has_value());
+  EXPECT_FALSE(FrameTopBandHitTest(500, 500, kWin, 8).has_value());
+}
+
+TEST(FrameTopBandHitTest, CornersWinOverPlainTop) {
+  // Cursor inside the top band AND the left/right side band -> corner codes,
+  // matching the native side-band corner behavior.
+  EXPECT_EQ(*FrameTopBandHitTest(104, 204, kWin, 8), HTTOPLEFT);
+  EXPECT_EQ(*FrameTopBandHitTest(896, 204, kWin, 8), HTTOPRIGHT);
+  // Just outside the side bands -> plain HTTOP.
+  EXPECT_EQ(*FrameTopBandHitTest(109, 204, kWin, 8), HTTOP);
+  EXPECT_EQ(*FrameTopBandHitTest(891, 204, kWin, 8), HTTOP);
 }
 
 TEST(FrameApplyEdgeBands, ZeroBandKeepsOnePixelTop) {
