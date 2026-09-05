@@ -1,8 +1,9 @@
-// // FRAME: pure-function tests for the Phase 3 frame graft (03-02).
-// No live HWND involved: geometry math, work-area clamping and the
-// cooperative GETMINMAXINFO merge are exercised as injectable math so they
-// stay deterministic under gtest. State-machine bits (subclass install /
-// teardown) need a real window tree and are covered by the UAT batch.
+// // FRAME: pure-function tests for the Phase 3 frame graft (03-02,
+// 2026-09-05 equal-width NC-band redesign). No live HWND involved: band
+// math, work-area clamping and the cooperative GETMINMAXINFO merge are
+// exercised as injectable math so they stay deterministic under gtest.
+// The state machine (Enable/Disable frame recalcs) needs a real window tree
+// and is covered by the UAT batch.
 #include <gtest/gtest.h>
 
 #include "frame_controller.h"
@@ -10,66 +11,43 @@
 namespace window_frame_kit {
 namespace test {
 
-// 800x600 window at (100, 200) on screen, 8px edge band.
+// 800x600 window at (100, 200) on screen.
 static constexpr RECT kWin = {100, 200, 900, 800};
-static constexpr int kEdge = 8;
 
-// --- FrameEdgeHitTest: pure geometry, 4 edges + 4 corners + interior ---
+// --- FrameApplyEdgeBands: equal-width NC-band inset (the redesign core) ---
 
-TEST(FrameEdgeHitTest, TopEdgeCenterHitsHttop) {
-  const auto hit = FrameEdgeHitTest(500, 204, kWin, kEdge);  // 4px inside top
-  ASSERT_TRUE(hit.has_value());
-  EXPECT_EQ(*hit, HTTOP);
+TEST(FrameApplyEdgeBands, InsetsAllFourSidesEqually) {
+  RECT rect = kWin;
+  FrameApplyEdgeBands(&rect, /*band=*/8);
+  EXPECT_EQ(rect.left, 108);
+  EXPECT_EQ(rect.top, 208);
+  EXPECT_EQ(rect.right, 892);
+  EXPECT_EQ(rect.bottom, 792);
+  // Uniform band on every side: 8px each.
+  EXPECT_EQ(rect.left - kWin.left, 8);
+  EXPECT_EQ(kWin.right - rect.right, 8);
+  EXPECT_EQ(rect.top - kWin.top, 8);
+  EXPECT_EQ(kWin.bottom - rect.bottom, 8);
 }
 
-TEST(FrameEdgeHitTest, BottomEdgeCenterHitsHtbottom) {
-  const auto hit = FrameEdgeHitTest(500, 796, kWin, kEdge);
-  ASSERT_TRUE(hit.has_value());
-  EXPECT_EQ(*hit, HTBOTTOM);
+TEST(FrameApplyEdgeBands, ZeroBandIsIdentity) {
+  RECT rect = kWin;
+  FrameApplyEdgeBands(&rect, 0);
+  EXPECT_EQ(rect.left, kWin.left);
+  EXPECT_EQ(rect.top, kWin.top);
+  EXPECT_EQ(rect.right, kWin.right);
+  EXPECT_EQ(rect.bottom, kWin.bottom);
 }
 
-TEST(FrameEdgeHitTest, LeftEdgeCenterHitsHtleft) {
-  const auto hit = FrameEdgeHitTest(104, 500, kWin, kEdge);
-  ASSERT_TRUE(hit.has_value());
-  EXPECT_EQ(*hit, HTLEFT);
-}
-
-TEST(FrameEdgeHitTest, RightEdgeCenterHitsHtright) {
-  const auto hit = FrameEdgeHitTest(896, 500, kWin, kEdge);
-  ASSERT_TRUE(hit.has_value());
-  EXPECT_EQ(*hit, HTRIGHT);
-}
-
-TEST(FrameEdgeHitTest, FourCornersHitCornerCodes) {
-  EXPECT_EQ(*FrameEdgeHitTest(100, 200, kWin, kEdge), HTTOPLEFT);
-  EXPECT_EQ(*FrameEdgeHitTest(900, 200, kWin, kEdge), HTTOPRIGHT);
-  EXPECT_EQ(*FrameEdgeHitTest(100, 800, kWin, kEdge), HTBOTTOMLEFT);
-  EXPECT_EQ(*FrameEdgeHitTest(900, 800, kWin, kEdge), HTBOTTOMRIGHT);
-}
-
-TEST(FrameEdgeHitTest, InteriorHasNoHit) {
-  EXPECT_FALSE(FrameEdgeHitTest(500, 500, kWin, kEdge).has_value());
-}
-
-TEST(FrameEdgeHitTest, BandBoundaryInclusiveOutsideExclusive) {
-  // Exactly edgeWidth px from the left border -> hit; one pixel further -> no.
-  EXPECT_TRUE(FrameEdgeHitTest(100 + kEdge, 500, kWin, kEdge).has_value());
-  EXPECT_FALSE(FrameEdgeHitTest(100 + kEdge + 1, 500, kWin, kEdge).has_value());
-}
-
-TEST(FrameEdgeHitTest, CornerWinsOverEdgeWhenInsideBothBands) {
-  // 3px from top AND 3px from left: corner code, not HTTOP/HTLEFT.
-  EXPECT_EQ(*FrameEdgeHitTest(103, 203, kWin, kEdge), HTTOPLEFT);
-}
-
-// --- Fullscreen/resizable gating is applied by callers via HitAllowed;
-//     its truth table is pinned here so both call sites agree. ---
-
-TEST(FrameHitAllowed, DisabledWhenFullscreenOrNotResizable) {
-  EXPECT_TRUE(FrameHitAllowed(/*resizable=*/true, /*fullscreen=*/false));
-  EXPECT_FALSE(FrameHitAllowed(true, true));
-  EXPECT_FALSE(FrameHitAllowed(false, false));
-  EXPECT_FALSE(FrameHitAllowed(false, true));
+TEST(FrameApplyEdgeBands, BandScalesWithDpiInjectedValue) {
+  // 150% DPI: the caller computes a ~6px band and applies it; the math just
+  // honors whatever band it is given.
+  RECT rect = kWin;
+  FrameApplyEdgeBands(&rect, /*band=*/6);
+  EXPECT_EQ(rect.left, 106);
+  EXPECT_EQ(rect.top, 206);
+  EXPECT_EQ(rect.right, 894);
+  EXPECT_EQ(rect.bottom, 794);
 }
 
 // --- FrameAdjustMinMaxInfo: cooperative merge (DEVIATIONS #1) ---
@@ -120,7 +98,7 @@ TEST(FrameAdjustMinMaxInfo, MaxTrackScalesAndZeroMinIsNoop) {
   EXPECT_EQ(info.ptMaxTrackSize.y, 800);
 }
 
-// --- FrameAdjustNccalcSizeToWork: maximized borderless content clamp ---
+// --- FrameAdjustNccalcSizeToWork: maximized band clamp ---
 
 TEST(FrameAdjustNccalcSizeToWork, ShrinksInflatedRectToWorkArea) {
   // System inflates a borderless maximized window 8px past the work area.
@@ -162,22 +140,6 @@ TEST(IsExternalFullscreenStyle, MatchesWindowManagerSetStyleMask) {
   EXPECT_TRUE(IsExternalFullscreenStyle(WS_POPUP | WS_VISIBLE));
   // Windowed: style keeps the full OVERLAPPEDWINDOW set.
   EXPECT_FALSE(IsExternalFullscreenStyle(WS_OVERLAPPEDWINDOW | WS_VISIBLE));
-}
-
-// --- FrameCalcGraftedStyle: frameless style recipe (drag-loop fix) ---
-
-TEST(FrameCalcGraftedStyle, DropsCaptionKeepsThickframe) {
-  const LONG_PTR grafted =
-      FrameCalcGraftedStyle(WS_OVERLAPPEDWINDOW | WS_VISIBLE);
-  EXPECT_EQ(grafted & WS_CAPTION, 0);
-  EXPECT_NE(grafted & WS_THICKFRAME, 0);
-  // Unrelated bits survive untouched.
-  EXPECT_NE(grafted & WS_VISIBLE, 0);
-}
-
-TEST(FrameCalcGraftedStyle, IdempotentWhenCaptionAlreadyAbsent) {
-  const LONG_PTR windowed = WS_POPUP | WS_THICKFRAME | WS_SYSMENU;
-  EXPECT_EQ(FrameCalcGraftedStyle(windowed), windowed | WS_THICKFRAME);
 }
 
 }  // namespace test

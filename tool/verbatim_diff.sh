@@ -86,13 +86,14 @@ if [ "$MAIN_ACTUAL" != "$MAIN_EXPECTED" ]; then
 fi
 
 # B. C++ 面——精确残留行数（结构偏离已记 DEVIATIONS.md，改动即重审）
-# plugin.cpp 146 = 原 22 结构偏离 + // FRAME: 嫁接块（03-03：include/成员/析构/
-# HandleWindowProc frame 分支/setCustomFrame handler，DEVIATIONS #10/#11）
+# plugin.cpp 148 = 原 22 结构偏离 + // FRAME: 嫁接块（03-03 接线 + 2026-09-05
+# 等宽带重设计：NCCALCSIZE band/最大化 clamp/全屏守卫 + setCustomFrame handler，
+# DEVIATIONS #10/#11）
 # tr 去除 CR：本地 Windows checkout（autocrlf）与 Linux CI 行尾一致化。
 n1=$(diff <(tr -d '\r' < windows/window_frame_kit_plugin.cpp) <(tr -d '\r' < "$WM/windows/window_manager_plugin.cpp") | grep -c '^[<>]')
 n2=$(diff <(tr -d '\r' < windows/window_manager.cpp) <(tr -d '\r' < "$WM/windows/window_manager.cpp") | grep -c '^[<>]')
-if [ "$n1" -ne 146 ]; then
-  echo "plugin.cpp residue $n1 != 146"
+if [ "$n1" -ne 148 ]; then
+  echo "plugin.cpp residue $n1 != 148"
   fail=1
 fi
 if [ "$n2" -ne 2 ]; then
@@ -101,6 +102,6 @@ if [ "$n2" -ne 2 ]; then
 fi
 
 if [ "$fail" -eq 0 ]; then
-  echo "VERBATIM PROOF OK (13 dart zero-diff + 2 customFrame pinned diffs + 1 pinned example deviation, cpp residue 146+2)"
+  echo "VERBATIM PROOF OK (13 dart zero-diff + 2 customFrame pinned diffs + 1 pinned example deviation, cpp residue 148+2)"
 fi
 exit "$fail"

@@ -152,13 +152,27 @@ std::optional<LRESULT> WindowManagerPlugin::HandleWindowProc(HWND hWnd,
   if (frame_controller_ != nullptr && frame_controller_->IsEnabled()) {
     switch (message) {
       case WM_NCCALCSIZE: {
-        // Borderless mapping: no themed border, no Win11 8px top inset. When
-        // maximized, clamp the client rect to the work area so content
-        // neither crops nor covers the taskbar (nearest monitor resolved
-        // from the window rect per upstream issue #489 practice).
-        if (wParam && ::IsZoomed(hWnd)) {
-          NCCALCSIZE_PARAMS* sz =
-              reinterpret_cast<NCCALCSIZE_PARAMS*>(lParam);
+        // Equal-width NC-band mapping (2026-09-05 redesign): the client
+        // shrinks by one DPI-scaled band on all four sides, so the band is
+        // REAL non-client area - DefWindowProc serves the native edge/
+        // corner resize hits (top edge included, fixing the upstream
+        // "hidden"-branch Win11 top-band-0 gap) while WS_CAPTION stays
+        // intact and DWM keeps the Win11 border + rounded corners.
+        // Fullscreen (dual-path) collapses the band to zero: no NC area, no
+        // resize. Maximized clamps to the work area so content neither
+        // crops nor covers the taskbar (nearest monitor per issue #489).
+        if (!wParam) {
+          break;
+        }
+        const bool fullscreen =
+            window_manager->IsFullScreen() ||
+            window_frame_kit::IsExternalFullscreenStyle(
+                GetWindowLongPtr(hWnd, GWL_STYLE));
+        if (fullscreen) {
+          return 0;
+        }
+        NCCALCSIZE_PARAMS* sz = reinterpret_cast<NCCALCSIZE_PARAMS*>(lParam);
+        if (::IsZoomed(hWnd)) {
           HMONITOR monitor =
               MonitorFromRect(&sz->rgrc[0], MONITOR_DEFAULTTONEAREST);
           MONITORINFO mi = {};
@@ -167,35 +181,27 @@ std::optional<LRESULT> WindowManagerPlugin::HandleWindowProc(HWND hWnd,
             window_frame_kit::FrameAdjustNccalcSizeToWork(&sz->rgrc[0],
                                                           mi.rcWork);
           }
+        } else {
+          window_frame_kit::FrameApplyEdgeBands(
+              &sz->rgrc[0],
+              window_frame_kit::FrameEdgeWidthForWindow(hWnd));
         }
-        if (wParam) {
-          return 0;
-        }
-        break;
+        return 0;
       }
       case WM_NCHITTEST: {
-        // Dual-path fullscreen guard: the plugin's own fullscreen plus the
-        // external style-strip path (media_kit). Either one makes the edges
-        // inert (host fullscreen_resize_guard parity); a non-resizable
-        // window keeps the upstream HTNOWHERE semantics.
+        // Defensive fullscreen guard only: with the band design the edge
+        // hit-testing is native (real NC area), so the graft just makes sure
+        // a fullscreen window can never report resize codes even if a stale
+        // frame calc left NC pixels behind. Non-fullscreen falls through to
+        // the system and the upstream branches untouched.
         const bool fullscreen =
             window_manager->IsFullScreen() ||
             window_frame_kit::IsExternalFullscreenStyle(
                 GetWindowLongPtr(hWnd, GWL_STYLE));
-        if (!window_frame_kit::FrameHitAllowed(
-                window_manager->is_resizable_, fullscreen)) {
+        if (fullscreen) {
           return window_manager->is_resizable_ ? HTCLIENT : HTNOWHERE;
         }
-        const LONG x = window_frame_kit::FrameXFromLParam(lParam);
-        const LONG y = window_frame_kit::FrameYFromLParam(lParam);
-        RECT rect;
-        GetWindowRect(hWnd, &rect);
-        const auto hit = window_frame_kit::FrameEdgeHitTest(
-            x, y, rect, window_frame_kit::FrameEdgeWidthForWindow(hWnd));
-        if (hit.has_value()) {
-          return *hit;
-        }
-        break;  // interior: fall through, system default HTCLIENT applies.
+        break;
       }
       case WM_GETMINMAXINFO: {
         // Cooperative merge (DEVIATIONS #1): upstream min/max track sizes
@@ -679,25 +685,21 @@ void WindowManagerPlugin::HandleMethodCall(
     result->Success(flutter::EncodableValue(true));
   } else if (method_name.compare("setCustomFrame") == 0) {
     // // FRAME: graft entry point (03-03) - arms/disarms the FrameController.
-    // The child view is located the same way the upstream fullscreen restore
-    // path finds it, with a GW_CHILD fallback; state probes are live
-    // callbacks so setResizable/setFullScreen reflect immediately.
+    // State probes are live callbacks so setResizable/setFullScreen reflect
+    // immediately; only the top-level HWND is needed (bands are top-level
+    // NC area, no child subclass involved).
     const flutter::EncodableMap& args =
         std::get<flutter::EncodableMap>(*method_call.arguments());
     bool isCustomFrame = std::get<bool>(
         args.at(flutter::EncodableValue("isCustomFrame")));
     if (isCustomFrame) {
       const HWND root = window_manager->GetMainWindow();
-      HWND child = FindWindowEx(root, nullptr, L"FLUTTERVIEW", nullptr);
-      if (child == nullptr) {
-        child = GetWindow(root, GW_CHILD);
-      }
       if (frame_controller_ == nullptr) {
         frame_controller_ =
             std::make_unique<window_frame_kit::FrameController>();
       }
       const bool ok = frame_controller_->Enable(
-          root, child, [this]() { return window_manager->is_resizable_; },
+          root, [this]() { return window_manager->is_resizable_; },
           [this]() { return window_manager->IsFullScreen(); });
       result->Success(flutter::EncodableValue(ok));
     } else {

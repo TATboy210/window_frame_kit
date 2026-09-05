@@ -1,80 +1,38 @@
-// // FRAME: Phase 3 custom-frame graft (03-02).
-// Borderless WM_NCCALCSIZE + 4-edge/4-corner DPI-aware WM_NCHITTEST +
-// cooperative WM_GETMINMAXINFO, grafted as one self-contained unit next to
-// the verbatim window_manager 0.5.2 port. Zero runner wiring, zero Dart win32
+// // FRAME: Phase 3 custom-frame graft (03-02, redesigned 2026-09-05 to the
+// equal-width NC-band route). Self-drawn-titlebar WM_NCCALCSIZE with a real
+// non-client resize band on all four sides + cooperative WM_GETMINMAXINFO +
+// dual-path fullscreen guard, grafted as one self-contained unit next to the
+// verbatim window_manager 0.5.2 port. Zero runner wiring, zero Dart win32
 // dependencies. Pure geometry/math helpers are inline here so the gtest TU
 // can pin their behavior; the HWND-touching state machine lives in the .cpp.
+// NOTE: windowsx.h is deliberately NOT included - it defines function-like
+// macros such as `IsMaximized(hwnd) -> IsZoomed(hwnd)` which would hijack
+// the verbatim upstream `window_manager->IsMaximized()` method calls in the
+// same translation unit and break the build.
 #pragma once
 
 #include <windows.h>
-#include <commctrl.h>
 
 #include <functional>
-#include <optional>
+// commctrl.h (SetWindowSubclass) no longer needed: the band design uses only
+// the top-level WM_NCCALCSIZE path, no child-window subclass.
 
 namespace window_frame_kit {
 
-// // FRAME: lParam cursor extraction (windowsx.h GET_X_LPARAM equivalents).
-// windowsx.h itself is deliberately NOT included: it defines function-like
-// macros such as `IsMaximized(hwnd) -> IsZoomed(hwnd)` which would hijack the
-// verbatim upstream `window_manager->IsMaximized()` method calls in the same
-// translation unit and break the build. Signed short keeps multi-monitor
-// negative coordinates intact.
-inline LONG FrameXFromLParam(LPARAM lParam) {
-  return static_cast<SHORT>(LOWORD(lParam));
-}
-inline LONG FrameYFromLParam(LPARAM lParam) {
-  return static_cast<SHORT>(HIWORD(lParam));
-}
-
-// Subclass id used for the Flutter-view child window hook (single hook per
-// plugin instance; the id is namespace-local to our SetWindowSubclass calls).
-constexpr UINT_PTR kFrameChildSubclassId = 0x57464B31;  // 'WFK1'
-
-/// // FRAME: Pure geometry - map a screen point to an HT* resize code for the
-/// window rect, using an inclusive edge band of `edgeWidth` px. Corners win
-/// over edges when inside both bands. Returns nullopt for the interior; the
-/// caller decides the interior result (child window -> HTCLIENT, top-level
-/// delegate -> nullopt so the system default applies).
-inline std::optional<LONG> FrameEdgeHitTest(LONG x, LONG y,
-                                            const RECT& rect, int edgeWidth) {
-  const LONG dx = x - rect.left;
-  const LONG dy = y - rect.top;
-  const LONG dr = rect.right - x;
-  const LONG db = rect.bottom - y;
-  const bool nearLeft = dx >= 0 && dx <= edgeWidth;
-  const bool nearRight = dr >= 0 && dr <= edgeWidth;
-  const bool nearTop = dy >= 0 && dy <= edgeWidth;
-  const bool nearBottom = db >= 0 && db <= edgeWidth;
-  if (nearLeft && nearTop) return HTTOPLEFT;
-  if (nearRight && nearTop) return HTTOPRIGHT;
-  if (nearLeft && nearBottom) return HTBOTTOMLEFT;
-  if (nearRight && nearBottom) return HTBOTTOMRIGHT;
-  if (nearLeft) return HTLEFT;
-  if (nearRight) return HTRIGHT;
-  if (nearTop) return HTTOP;
-  if (nearBottom) return HTBOTTOM;
-  return std::nullopt;
-}
-
-/// // FRAME: Edge resizing is allowed only when the window is resizable and
-/// not fullscreen. Fullscreen covers BOTH paths (see IsExternalFullscreenStyle
-/// and WindowManager::IsFullScreen) - bitsdojo's missing guard is the bug this
-/// graft must not reproduce.
-inline constexpr bool FrameHitAllowed(bool resizable, bool fullscreen) {
-  return resizable && !fullscreen;
-}
-
-/// // FRAME: Style mask for the graft - the Chromium/Electron frameless
-/// recipe. WM_NCCALCSIZE returning 0 only remaps the client rect; during a
-/// drag-resize modal loop DefWindowProc still repainted the non-client area
-/// computed from WS_CAPTION, so the themed border flashed back mid-drag
-/// (2026-09-05 real-machine finding). Dropping WS_CAPTION while keeping
-/// WS_THICKFRAME removes what the loop would repaint while preserving
-/// native edge resizing. Applied on Enable and restored on Disable.
-inline LONG_PTR FrameCalcGraftedStyle(LONG_PTR style) {
-  const LONG_PTR withoutCaption = style & ~static_cast<LONG_PTR>(WS_CAPTION);
-  return withoutCaption | WS_THICKFRAME;
+/// // FRAME: Equal-width NC-band inset (2026-09-05 redesign per user target:
+/// self-drawn titlebar PLUS the system border - Win11 1px border + rounded
+/// corners - and uniform 4-edge resize). Instead of collapsing the client to
+/// the full window rect (pure borderless), the client shrinks by `band` px on
+/// ALL FOUR sides (upstream window_manager's "hidden" branch leaves the top
+/// band 0 on Win11, killing top-edge resize). The band stays a REAL
+/// non-client area: DefWindowProc serves HTTOP/HTLEFT/... natively, drag-
+/// resize repaints redraw the band itself (no themed-border flash), and
+/// WS_CAPTION is never touched so DWM keeps drawing the border/corners.
+inline void FrameApplyEdgeBands(RECT* rect, int band) {
+  rect->left += band;
+  rect->top += band;
+  rect->right -= band;
+  rect->bottom -= band;
 }
 
 /// // FRAME: External-fullscreen predicate - media_kit's fullscreen path
@@ -131,13 +89,15 @@ inline void FrameAdjustNccalcSizeToWork(RECT* windowRect,
 /// // FRAME: Per-monitor-DPI resize band: standard sizing frame plus padded
 /// border for this window's DPI (Win10 1607+ APIs; the package floor is
 /// Windows 10). Non-pure (queries the system) so tests inject band widths
-/// into FrameEdgeHitTest directly.
+/// into FrameApplyEdgeBands directly.
 int FrameEdgeWidthForWindow(HWND hwnd);
 
-/// // FRAME: Runtime state machine for the graft. Owns the child-window
-/// subclass; the top-level message path stays in the plugin's existing
-/// HandleWindowProc delegate, which consults IsEnabled() first and falls
-/// through to the upstream branches otherwise.
+/// // FRAME: Runtime state machine for the graft. The top-level message path
+/// lives in the plugin's existing HandleWindowProc delegate, which consults
+/// IsEnabled() first and falls through to the upstream branches otherwise.
+/// No child-window subclass is needed in the band design: resize bands are
+/// real non-client area, so edge hit-testing is served by DefWindowProc and
+/// the Flutter view (client area only) never sees edge messages.
 class FrameController {
  public:
   FrameController() = default;
@@ -145,37 +105,24 @@ class FrameController {
   FrameController(const FrameController&) = delete;
   FrameController& operator=(const FrameController&) = delete;
 
-  ~FrameController();  // Disables (removes the subclass) if still enabled.
+  ~FrameController();  // Disables (restores upstream frame) if still enabled.
 
   bool IsEnabled() const { return enabled_; }
 
-  /// Installs the child subclass and forces a frame recalc. Both state
-  /// probes are injected callbacks (the plugin wires them to
+  /// Arms the graft and forces a frame recalc. Both state probes are
+  /// injected callbacks (the plugin wires them to
   /// WindowManager::is_resizable_ / IsFullScreen) so values are read live at
-  /// hit-test time and this class needs no dependency on the
-  /// anonymous-namespace port types. Returns false (no partial state) when
-  /// the subclass cannot be installed.
-  bool Enable(HWND root, HWND child,
-              std::function<bool()> isResizable,
+  /// message time. `root` is the top-level HWND the bands apply to.
+  bool Enable(HWND root, std::function<bool()> isResizable,
               std::function<bool()> isPluginFullscreen);
 
-  /// Removes the subclass, restores the system frame, forces a recalc.
+  /// Disarms the graft, restoring the upstream frame mapping.
   /// Idempotent: disabling twice is a no-op.
   void Disable();
-
-  /// Subclass proc for the Flutter-view child window. Handles WM_NCHITTEST
-  /// edge/corner dispatch (fullscreen or non-resizable -> HTCLIENT) and
-  /// self-unloads on WM_NCDESTROY.
-  static LRESULT CALLBACK ChildProc(HWND hWnd, UINT message, WPARAM wParam,
-                                    LPARAM lParam, UINT_PTR uIdSubclass,
-                                    DWORD_PTR dwRefData);
 
  private:
   bool enabled_ = false;
   HWND root_ = nullptr;
-  HWND child_ = nullptr;
-  // Pre-graft GWL_STYLE, restored verbatim on Disable.
-  LONG_PTR style_before_graft_ = 0;
   // Live probes, not snapshots: setResizable/setFullScreen must reflect in
   // the graft immediately without re-arming it.
   std::function<bool()> is_resizable_;
