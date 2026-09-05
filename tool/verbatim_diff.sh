@@ -19,12 +19,11 @@ fail=0
 # 包名派生串一次归一（逐字区唯一允许的机械偏离）
 norm() { sed 's/window_frame_kit/window_manager/g' "$1"; }
 
-# 15 对普通逐字区文件（main.dart 和 home.dart 走下方精确特例）
+# 13 对普通逐字区文件（main.dart/home.dart 走精确特例；window_options.dart
+# 与 window_manager.dart 自 03-01 起为 customFrame 嫁接偏差区，走下方快照门）
 declare -A DART_PAIRS=(
   [lib/window_frame_kit.dart]=lib/window_manager.dart
-  [lib/src/window_manager.dart]=lib/src/window_manager.dart
   [lib/src/window_listener.dart]=lib/src/window_listener.dart
-  [lib/src/window_options.dart]=lib/src/window_options.dart
   [lib/src/resize_edge.dart]=lib/src/resize_edge.dart
   [lib/src/title_bar_style.dart]=lib/src/title_bar_style.dart
   [lib/src/utils/calc_window_position.dart]=lib/src/utils/calc_window_position.dart
@@ -44,6 +43,21 @@ for ours in "${!DART_PAIRS[@]}"; do
     fail=1
   fi
 done
+
+# 03-01 customFrame 嫁接偏差区（DEVIATIONS #8/#9）：归一化 diff 必须与
+# tool/verbatim_expected/ 下钉住的快照逐字节一致——内容级校验而非行数，
+# 改动嫁接行之外的任何内容（或删偏差）都会红灯，防止静默漂移。
+pinned_diff() { # $1=ours $2=upstream-relative $3=snapshot name
+  local actual expected
+  actual=$(diff <(norm "$1" | tr -d '\r') "$WM/$2" | tr -d '\r')
+  expected=$(tr -d '\r' < "tool/verbatim_expected/$3")
+  if [ "$actual" != "$expected" ]; then
+    echo "VERBATIM FAIL: $1 differs from pinned snapshot tool/verbatim_expected/$3"
+    fail=1
+  fi
+}
+pinned_diff lib/src/window_options.dart lib/src/window_options.dart window_options.diff
+pinned_diff lib/src/window_manager.dart lib/src/window_manager.dart window_manager.diff
 
 # home.dart 唯一额外例外：用户授权移除托盘（DEVIATIONS #7）。
 # 固定已审查版本的归一化 blob，不能任意编辑 example 后仍蒙混过门。
@@ -80,6 +94,6 @@ if [ "$n2" -ne 2 ]; then
 fi
 
 if [ "$fail" -eq 0 ]; then
-  echo "VERBATIM PROOF OK (16 dart files zero-diff, 1 pinned example deviation, cpp residue 22+2)"
+  echo "VERBATIM PROOF OK (13 dart zero-diff + 2 customFrame pinned diffs + 1 pinned example deviation, cpp residue 22+2)"
 fi
 exit "$fail"

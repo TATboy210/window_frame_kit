@@ -16,6 +16,7 @@ class WindowOptions {
     this.title,
     this.titleBarStyle,
     this.windowButtonVisibility,
+    this.customFrame, // // FRAME: graft customFrame option (deviation from upstream 0.5.2)
   });
 
   final Size? size;
@@ -29,4 +30,10 @@ class WindowOptions {
   final String? title;
   final TitleBarStyle? titleBarStyle;
   final bool? windowButtonVisibility;
+
+  /// // FRAME: When true, the native FrameController takes over the window
+  /// frame (borderless NCCALCSIZE + 4-edge/4-corner hit-test + cooperative
+  /// GETMINMAXINFO) right after [titleBarStyle] is applied. Defaults to null
+  /// (no channel call) to preserve upstream window_manager 0.5.2 behavior.
+  final bool? customFrame;
 }

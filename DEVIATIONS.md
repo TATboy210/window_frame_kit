@@ -21,6 +21,9 @@ Upstream anchors refer to the pinned pub-cache versions:
 
 | 7 | window_manager-0.5.2/example/lib/pages/home.dart:9,39,60-100,888-899,1027-1049 | example/lib/pages/home.dart + utils/mouse_passthrough_recovery.dart | 移除 tray listener/menu/init，穿透改为 5 秒限时恢复；平台写入串行化并在销毁时恢复 | 用户 2026-09-05 指令（WINDOWS #7）；不改插件 API/native。恢复测试纳入 CI，移除 tray 依赖及 Linux appindicator；home.dart 归一化摘要由 verbatim_diff.sh 精确固定，其余 16 文件与 C++ 22+2 不变 | `// DEV:`（home.dart import 处） |
 
+| 8 | window_manager-0.5.2/lib/src/window_options.dart:7-31 | lib/src/window_options.dart | `customFrame` optional field appended to `WindowOptions` (constructor + field + doc) | FRAME-01/02/03 entry point: enables frame takeover via `waitUntilReadyToShow` before first show; null default sends no channel call, preserving upstream behavior | `// FRAME:` (constructor line + field doc) |
+| 9 | window_manager-0.5.2/lib/src/window_manager.dart:123-163 (waitUntilReadyToShow), tail of class | lib/src/window_manager.dart | (a) `waitUntilReadyToShow` applies `options.customFrame` right after titleBarStyle, before fullscreen/maximized restore; (b) new `setCustomFrame(bool)` method sending `{'isCustomFrame': bool}` | Ordered graft so the native subclass installs before any geometry-affecting state transition; explicit runtime toggle for callers not using WindowOptions | `// FRAME:` (waitUntilReadyToShow block + setCustomFrame method) |
+
 *(Row above is a placeholder to be replaced with the real entry when the
 Phase 3 graft lands. New rows append below — one row per functional block,
 never per line.)*
