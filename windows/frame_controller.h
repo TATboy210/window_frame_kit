@@ -65,6 +65,18 @@ inline constexpr bool FrameHitAllowed(bool resizable, bool fullscreen) {
   return resizable && !fullscreen;
 }
 
+/// // FRAME: Style mask for the graft - the Chromium/Electron frameless
+/// recipe. WM_NCCALCSIZE returning 0 only remaps the client rect; during a
+/// drag-resize modal loop DefWindowProc still repainted the non-client area
+/// computed from WS_CAPTION, so the themed border flashed back mid-drag
+/// (2026-09-05 real-machine finding). Dropping WS_CAPTION while keeping
+/// WS_THICKFRAME removes what the loop would repaint while preserving
+/// native edge resizing. Applied on Enable and restored on Disable.
+inline LONG_PTR FrameCalcGraftedStyle(LONG_PTR style) {
+  const LONG_PTR withoutCaption = style & ~static_cast<LONG_PTR>(WS_CAPTION);
+  return withoutCaption | WS_THICKFRAME;
+}
+
 /// // FRAME: External-fullscreen predicate - media_kit's fullscreen path
 /// strips WS_OVERLAPPEDWINDOW from the top-level style (host-project verified
 /// behavior). window_manager's own fullscreen only strips
@@ -162,6 +174,8 @@ class FrameController {
   bool enabled_ = false;
   HWND root_ = nullptr;
   HWND child_ = nullptr;
+  // Pre-graft GWL_STYLE, restored verbatim on Disable.
+  LONG_PTR style_before_graft_ = 0;
   // Live probes, not snapshots: setResizable/setFullScreen must reflect in
   // the graft immediately without re-arming it.
   std::function<bool()> is_resizable_;

@@ -164,5 +164,21 @@ TEST(IsExternalFullscreenStyle, MatchesWindowManagerSetStyleMask) {
   EXPECT_FALSE(IsExternalFullscreenStyle(WS_OVERLAPPEDWINDOW | WS_VISIBLE));
 }
 
+// --- FrameCalcGraftedStyle: frameless style recipe (drag-loop fix) ---
+
+TEST(FrameCalcGraftedStyle, DropsCaptionKeepsThickframe) {
+  const LONG_PTR grafted =
+      FrameCalcGraftedStyle(WS_OVERLAPPEDWINDOW | WS_VISIBLE);
+  EXPECT_EQ(grafted & WS_CAPTION, 0);
+  EXPECT_NE(grafted & WS_THICKFRAME, 0);
+  // Unrelated bits survive untouched.
+  EXPECT_NE(grafted & WS_VISIBLE, 0);
+}
+
+TEST(FrameCalcGraftedStyle, IdempotentWhenCaptionAlreadyAbsent) {
+  const LONG_PTR windowed = WS_POPUP | WS_THICKFRAME | WS_SYSMENU;
+  EXPECT_EQ(FrameCalcGraftedStyle(windowed), windowed | WS_THICKFRAME);
+}
+
 }  // namespace test
 }  // namespace window_frame_kit

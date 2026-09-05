@@ -39,6 +39,13 @@ bool FrameController::Enable(HWND root, HWND child,
   child_ = child;
   root_ = root;
   enabled_ = true;
+  // // FRAME: drop WS_CAPTION (keep WS_THICKFRAME) so the drag-resize modal
+  // loop has no non-client area to repaint - see FrameCalcGraftedStyle.
+  style_before_graft_ = GetWindowLongPtr(root, GWL_STYLE);
+  const LONG_PTR grafted = FrameCalcGraftedStyle(style_before_graft_);
+  if (grafted != style_before_graft_) {
+    SetWindowLongPtr(root, GWL_STYLE, grafted);
+  }
   // Force the top-level WM_NCCALCSIZE through the plugin delegate so the
   // borderless mapping applies on the very next paint, not after the first
   // resize. No geometry change, frame change only.
@@ -58,6 +65,12 @@ void FrameController::Disable() {
   }
   child_ = nullptr;
   if (root_ != nullptr) {
+    // // FRAME: restore the exact pre-graft style so the upstream frame
+    // mapping (hidden/frameless branches) operates on untouched state.
+    if (style_before_graft_ != 0) {
+      SetWindowLongPtr(root_, GWL_STYLE, style_before_graft_);
+      style_before_graft_ = 0;
+    }
     // Restore the upstream frame mapping with the same frame-only recalc.
     SetWindowPos(root_, nullptr, 0, 0, 0, 0,
                  SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER |
