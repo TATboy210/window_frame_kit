@@ -60,7 +60,7 @@ Plans:
 **Plans**: TBD
 
 - [x] 02-01-PLAN.md
-- [ ] 02-02-PLAN.md
+- [x] 02-02-PLAN.md
 - [ ] 02-03-PLAN.md
 - [ ] 02-04-PLAN.md
 - [ ] 02-05-PLAN.md
@@ -137,7 +137,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. 包骨架与许可基座 | 4/4 | Complete    | 2026-09-04 |
-| 2. Windows 基座移植 | 1/5 | In Progress|  |
+| 2. Windows 基座移植 | 2/5 | In Progress|  |
 | 3. Windows Frame 嫁接 | 0/TBD | Not started | - |
 | 4. Linux + macOS 移植 | 0/TBD | Not started | - |
 | 5. Example 强化 + 发布 0.1.0 | 0/TBD | Not started | - |

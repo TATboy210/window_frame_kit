@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 4
+open_count: 5
 waived_count: 0
 fixed_count: 2
-total_count: 6
-last_updated: 2026-09-04T18:45:00.000Z
+total_count: 7
+last_updated: 2026-09-05T04:39:05.252Z
 ---
 
 # Broken Windows Ledger
@@ -21,6 +21,7 @@ last_updated: 2026-09-04T18:45:00.000Z
 | 4 | 1 | todo | example/windows |  | 基线观察：快速拖拽左缘 resize 时右缘毫秒级瞬间空白（裸 Flutter 模板窗口路径，非 CMake configure 补丁；根因未诊断 render-pipeline/shader/windowing）复现：按住左边边缘→迅速左右往复拖拽→观察空白区右缘——Phase 3 frame 接管落地后复测（01-03-SUMMARY Baseline Observation） | open |  | 2026-09-04T12:05:00.643Z |  |
 | 5 | 1 | todo | pubspec.yaml |  | pana 基线 140/160（Phase 2 02-01 重钉 threshold 20，CI run 33906880498）：①description 超 180 字符建议长度扣 0/10 ②逐字区 lib/src 不匹配 tall-style formatter 扣 40/50（SC5 字节级 verbatim 的结构性代价，pana format 检查无豁免机制）——Phase 5 PUB-04 精简 description 后把 ci.yml 的 pana exit-code-threshold 重钉为 160 − 新基线 | open |  | 2026-09-04T13:18:21.677Z |  |
 | 6 | 2 | stub | example/test/widget_test.dart |  | 模板版 widget_test（引用 MyApp+'Running on:'）在 main.dart 被上游版覆盖后 fail-if-run；CI 永不跑它（root flutter test 不含嵌套包）；上游 window_manager 0.5.2 同款文件同样坏（对等行为）——Phase 5 example 强化时清理（02-RESEARCH Open Q4 定案） | open |  | 2026-09-04T18:26:00.000Z |  |
+| 7 | 2 | todo | example/lib/pages/home.dart |  | example 移除系统托盘（用户指令 2026-09-05）→ 02-05 执行；需替代 CAPB-11 穿透恢复路径（候选：定时自动复位/快捷键）+ ci.yml ubuntu leg 的 libayatana-appindicator3-dev 依赖同步移除 + registrant 再生成同 commit | open |  | 2026-09-05T04:39:05.252Z |  |
 
 ````json
 [
@@ -94,6 +95,18 @@ last_updated: 2026-09-04T18:45:00.000Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-09-04T18:26:00.000Z",
+    "resolved_at": null
+  },
+  {
+    "id": 7,
+    "kind": "todo",
+    "phase": "2",
+    "file": "example/lib/pages/home.dart",
+    "line": null,
+    "description": "example 移除系统托盘（用户指令 2026-09-05）→ 02-05 执行；需替代 CAPB-11 穿透恢复路径（候选：定时自动复位/快捷键）+ ci.yml ubuntu leg 的 libayatana-appindicator3-dev 依赖同步移除 + registrant 再生成同 commit",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-09-05T04:39:05.252Z",
     "resolved_at": null
   }
 ]
