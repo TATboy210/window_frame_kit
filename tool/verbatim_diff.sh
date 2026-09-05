@@ -81,11 +81,13 @@ if ! diff <(grep -viE 'window_event_logger|windoweventlogger' example/lib/main.d
   fail=1
 fi
 
-# B. C++ 面——精确残留行数（结构偏离已记 DEVIATIONS.md ②③④，改动即重审）
+# B. C++ 面——精确残留行数（结构偏离已记 DEVIATIONS.md，改动即重审）
+# plugin.cpp 146 = 原 22 结构偏离 + // FRAME: 嫁接块（03-03：include/成员/析构/
+# HandleWindowProc frame 分支/setCustomFrame handler，DEVIATIONS #10/#11）
 n1=$(diff windows/window_frame_kit_plugin.cpp "$WM/windows/window_manager_plugin.cpp" | grep -c '^[<>]')
 n2=$(diff windows/window_manager.cpp "$WM/windows/window_manager.cpp" | grep -c '^[<>]')
-if [ "$n1" -ne 22 ]; then
-  echo "plugin.cpp residue $n1 != 22"
+if [ "$n1" -ne 146 ]; then
+  echo "plugin.cpp residue $n1 != 146"
   fail=1
 fi
 if [ "$n2" -ne 2 ]; then
@@ -94,6 +96,6 @@ if [ "$n2" -ne 2 ]; then
 fi
 
 if [ "$fail" -eq 0 ]; then
-  echo "VERBATIM PROOF OK (13 dart zero-diff + 2 customFrame pinned diffs + 1 pinned example deviation, cpp residue 22+2)"
+  echo "VERBATIM PROOF OK (13 dart zero-diff + 2 customFrame pinned diffs + 1 pinned example deviation, cpp residue 146+2)"
 fi
 exit "$fail"

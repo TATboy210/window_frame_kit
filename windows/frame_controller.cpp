@@ -15,12 +15,20 @@ int FrameEdgeWidthForWindow(HWND hwnd) {
   return frame + padded;
 }
 
-bool FrameController::Enable(HWND root, HWND child, bool resizable,
+FrameController::~FrameController() {
+  // If the plugin dies before the window tree, the subclass must not outlive
+  // its ref-data owner; Disable() also skips the SetWindowPos because
+  // enabled_ flips first.
+  Disable();
+}
+
+bool FrameController::Enable(HWND root, HWND child,
+                             std::function<bool()> isResizable,
                              std::function<bool()> isPluginFullscreen) {
   if (root == nullptr || child == nullptr) {
     return false;
   }
-  is_resizable_ = resizable;
+  is_resizable_ = std::move(isResizable);
   is_plugin_fullscreen_ = std::move(isPluginFullscreen);
   // Install first, flip state second: if the subclass call fails we leave no
   // half-enabled state behind (caller surfaces the failure to Dart).
@@ -44,11 +52,11 @@ void FrameController::Disable() {
   if (!enabled_) {
     return;  // Idempotent: repeated disable / disable-before-enable is safe.
   }
+  enabled_ = false;  // Flip first so a re-entrant hit-test sees "off".
   if (child_ != nullptr) {
     RemoveWindowSubclass(child_, ChildProc, kFrameChildSubclassId);
   }
   child_ = nullptr;
-  enabled_ = false;
   if (root_ != nullptr) {
     // Restore the upstream frame mapping with the same frame-only recalc.
     SetWindowPos(root_, nullptr, 0, 0, 0, 0,
@@ -70,15 +78,18 @@ LRESULT CALLBACK FrameController::ChildProc(HWND hWnd, UINT message,
              message == WM_NCHITTEST) {
     // Dual-path fullscreen guard: the plugin's own fullscreen state plus the
     // external style-strip path (media_kit). Either one disables resizing.
+    // Both probes are live callbacks - a setResizable/setFullScreen call
+    // mid-session is honored on the next hit-test without re-arming.
     const HWND root = GetAncestor(hWnd, GA_ROOT);
     const bool externalFullscreen =
         IsExternalFullscreenStyle(GetWindowLongPtr(root, GWL_STYLE));
-    const bool pluginFullscreen = self->is_plugin_fullscreen_ &&
-                                  self->is_plugin_fullscreen_();
-    if (FrameHitAllowed(self->is_resizable_,
+    const bool pluginFullscreen =
+        self->is_plugin_fullscreen_ && self->is_plugin_fullscreen_();
+    const bool resizable = self->is_resizable_ && self->is_resizable_();
+    if (FrameHitAllowed(resizable,
                         pluginFullscreen || externalFullscreen)) {
-      const LONG x = GET_X_LPARAM(lParam);
-      const LONG y = GET_Y_LPARAM(lParam);
+      const LONG x = FrameXFromLParam(lParam);
+      const LONG y = FrameYFromLParam(lParam);
       RECT rect;
       GetWindowRect(hWnd, &rect);
       // The child fills the top-level client area; with WM_NCCALCSIZE

@@ -8,12 +8,24 @@
 
 #include <windows.h>
 #include <commctrl.h>
-#include <windowsx.h>
 
 #include <functional>
 #include <optional>
 
 namespace window_frame_kit {
+
+// // FRAME: lParam cursor extraction (windowsx.h GET_X_LPARAM equivalents).
+// windowsx.h itself is deliberately NOT included: it defines function-like
+// macros such as `IsMaximized(hwnd) -> IsZoomed(hwnd)` which would hijack the
+// verbatim upstream `window_manager->IsMaximized()` method calls in the same
+// translation unit and break the build. Signed short keeps multi-monitor
+// negative coordinates intact.
+inline LONG FrameXFromLParam(LPARAM lParam) {
+  return static_cast<SHORT>(LOWORD(lParam));
+}
+inline LONG FrameYFromLParam(LPARAM lParam) {
+  return static_cast<SHORT>(HIWORD(lParam));
+}
 
 // Subclass id used for the Flutter-view child window hook (single hook per
 // plugin instance; the id is namespace-local to our SetWindowSubclass calls).
@@ -121,13 +133,18 @@ class FrameController {
   FrameController(const FrameController&) = delete;
   FrameController& operator=(const FrameController&) = delete;
 
+  ~FrameController();  // Disables (removes the subclass) if still enabled.
+
   bool IsEnabled() const { return enabled_; }
 
-  /// Installs the child subclass and forces a frame recalc. `isPluginFullscreen`
-  /// is injected by the plugin (calls WindowManager::IsFullScreen) so this
-  /// class needs no dependency on the anonymous-namespace port types.
-  /// Returns false (no partial state) when the subclass cannot be installed.
-  bool Enable(HWND root, HWND child, bool resizable,
+  /// Installs the child subclass and forces a frame recalc. Both state
+  /// probes are injected callbacks (the plugin wires them to
+  /// WindowManager::is_resizable_ / IsFullScreen) so values are read live at
+  /// hit-test time and this class needs no dependency on the
+  /// anonymous-namespace port types. Returns false (no partial state) when
+  /// the subclass cannot be installed.
+  bool Enable(HWND root, HWND child,
+              std::function<bool()> isResizable,
               std::function<bool()> isPluginFullscreen);
 
   /// Removes the subclass, restores the system frame, forces a recalc.
@@ -145,7 +162,9 @@ class FrameController {
   bool enabled_ = false;
   HWND root_ = nullptr;
   HWND child_ = nullptr;
-  bool is_resizable_ = true;
+  // Live probes, not snapshots: setResizable/setFullScreen must reflect in
+  // the graft immediately without re-arming it.
+  std::function<bool()> is_resizable_;
   std::function<bool()> is_plugin_fullscreen_;
 };
 
