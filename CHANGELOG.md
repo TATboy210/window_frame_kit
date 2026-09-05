@@ -4,6 +4,24 @@ All notable changes to this project are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com) and the
 project adheres to [Semantic Versioning](https://semver.org).
 
+## 0.2.0 - 2026-09-05
+
+### Changed
+
+- **Windows**: `customFrame` redesigned from pure borderless (client
+  collapses to the full window rect) to **equal-width NC bands** — the
+  client shrinks by one DPI-scaled band on all four sides, giving:
+  - self-drawn titlebar **plus** the system border (Win11 1px border and
+    rounded corners survive, `WS_CAPTION` is never touched);
+  - uniform 4-edge + 4-corner native resize bands (including the top edge,
+    which upstream window_manager's `hidden` branch leaves dead on Win11);
+  - no themed-border flash during drag-resize (the band is real
+    non-client area, so the resize loop repaints the band itself);
+  - fullscreen (both the plugin's own and an external `WS_OVERLAPPEDWINDOW`
+    strip) collapses the band entirely — no NC area, no resize.
+- No child-window subclass needed anymore (edge hit-testing is native);
+  the child subclass from 0.1.x is gone.
+
 ## 0.1.1 - 2026-09-05
 
 ### Fixed
