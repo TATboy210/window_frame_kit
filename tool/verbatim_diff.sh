@@ -102,6 +102,6 @@ if [ "$n2" -ne 2 ]; then
 fi
 
 if [ "$fail" -eq 0 ]; then
-  echo "VERBATIM PROOF OK (13 dart zero-diff + 2 customFrame pinned diffs + 1 pinned example deviation, cpp residue 148+2)"
+  echo "VERBATIM PROOF OK (13 dart zero-diff + 2 customFrame pinned diffs + 1 pinned example deviation, cpp residue 155+2)"
 fi
 exit "$fail"
