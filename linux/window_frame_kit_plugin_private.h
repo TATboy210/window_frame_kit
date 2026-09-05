@@ -6,5 +6,6 @@
 // https://github.com/flutter/flutter/issues/88724 for current limitations
 // in the unit-testable API.
 
-// Handles the getPlatformVersion method call.
-FlMethodResponse *get_platform_version();
+// The ported window_manager 0.5.2 implementation exposes no free functions
+// (the template's get_platform_version helper was removed with the port);
+// unit tests exercise the GObject type registration via the public header.
