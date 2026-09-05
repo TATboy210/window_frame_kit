@@ -34,13 +34,16 @@ jobs:
           dart format --set-exit-if-changed --output=none
           test/channel_contract_test.dart
           example/lib/utils/window_event_logger.dart
-          example/test/widget_test.dart
           example/lib/utils/mouse_passthrough_recovery.dart
           example/test/mouse_passthrough_recovery_test.dart
+          example/test/custom_frame_toggle_test.dart
       - run: flutter test
       - name: Example recovery tests
         working-directory: example
         run: flutter test test/mouse_passthrough_recovery_test.dart
+      - name: Example custom-frame widget tests
+        working-directory: example
+        run: flutter test test/custom_frame_toggle_test.dart
       # SC5 机器门（02-RESEARCH Open Q3 定案进 CI）：curl 官方 pub.dev archive 为对照源，
       # 16 个 Dart 文件零差；无托盘 home.dart 用固定摘要守护授权偏差，禁止静默放宽。
       - name: Verbatim diff vs upstream window_manager 0.5.2 (ubuntu)

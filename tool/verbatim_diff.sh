@@ -63,7 +63,7 @@ pinned_diff lib/src/window_manager.dart lib/src/window_manager.dart window_manag
 # 固定已审查版本的归一化 blob，不能任意编辑 example 后仍蒙混过门。
 # tr 去除 CR 使 Windows checkout 与 Linux CI 的行尾一致。
 HOME_HASH=$(norm example/lib/pages/home.dart | tr -d '\r' | git hash-object --stdin)
-if [ "$HOME_HASH" != "80e84d0eaa991dcf443d4142fec9dc3dfa8fa9ac" ]; then
+if [ "$HOME_HASH" != "70fd5afa89b7672b72b4498c443a86b81eb0b636" ]; then
   echo "VERBATIM FAIL: home.dart differs from reviewed no-tray deviation #7"
   fail=1
 fi

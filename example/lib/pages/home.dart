@@ -59,6 +59,8 @@ class _HomePageState extends State<HomePage> with WindowListener {
   bool _isIgnoreMouseEvents = false;
   String _iconType = _kIconTypeOriginal;
   bool _isVisibleOnAllWorkspaces = false;
+  // // FRAME: cold-start arm happens in main.dart; the switch mirrors it.
+  bool _isCustomFrame = true;
 
   @override
   void initState() {
@@ -877,6 +879,17 @@ class _HomePageState extends State<HomePage> with WindowListener {
               value: _isIgnoreMouseEvents,
               onChanged: (newValue) async {
                 await _mouseRecovery?.setEnabled(newValue);
+              },
+            ),
+            PreferenceListSwitchItem(
+              title: const Text('setCustomFrame'),
+              value: _isCustomFrame,
+              onChanged: (newValue) async {
+                // // FRAME: runtime toggle for the custom-frame graft
+                // (05-01). main.dart already arms it at cold start; this
+                // exercises the reversible on/off path in real time.
+                await windowManager.setCustomFrame(newValue);
+                if (mounted) setState(() => _isCustomFrame = newValue);
               },
             ),
             PreferenceListItem(
