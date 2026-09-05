@@ -31,10 +31,10 @@ requirements-completed: []
 
 - 所有合批人工UAT及最终phase gate签核。
 - 新提交的远程三平台CI；旧HEAD的CI绿不证明本次修改。
-- 本轮 publish dry-run 尚未执行。
+- 本轮 publish dry-run 已执行：Package has 0 warnings；未发布。
 - 旧 example/test/widget_test.dart 仍为 WINDOWS #6 挂账模板测试，本次未运行也未改断言；CI仅新增恢复测试，不假称example全套通过。
 - 既有integration_test的isFocused环境失败不重跑、不篡改。
-- Phase 3不可开始，REQUIREMENTS不勾选。
+- Phase 3按用户2026-09-05授权（人工项合并最终验收）允许开始，REQUIREMENTS勾选仍待shared-ID gate，不提前。
 
 ## 聚焦审查
 

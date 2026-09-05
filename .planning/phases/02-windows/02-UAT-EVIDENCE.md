@@ -107,7 +107,7 @@ isAlwaysOnBottom（skip: macOS||Windows）、isMovable（skip: Linux||Windows）
 | CAPB-08 标题栏 | hidden/normal 往返；getTitleBarHeight 物理像素值>0，不能按逻辑像素误判 | deferred | — |
 | CAPB-09 拖动 | DragToMoveArea 移动；红色 DragToResizeArea 八方向缩放；全屏拖动被 Dart 守卫拒绝 | deferred | — |
 | CAPB-10 外观 | title/getTitle、窗口图标、阴影、透明度、背景色、brightness、置顶、置底逐项观察（Windows上游不支持项不冒充有效） | deferred | — |
-| CAPB-11 穿透 | 开启 setIgnoreMouseEvents 后点击落到下层；5 秒后恢复可点击、开关自动归 false；通知区无托盘图标；forward 在 Windows 无效=上游语义 | deferred | — |
+| CAPB-11 穿透 | 无托盘图标、点击穿透、5 秒恢复点击且开关关闭 | 用户回复“测试通过”（仅此三项）；forward 语义未实测 | 2026-09-05 |
 | CAPB-12 系统菜单 | 初始化之后 setAsFrameless，再 popUpWindowMenu，菜单显示且移动/大小/最小化可用 | deferred | — |
 
 **批③ sign-off:** DEFERRED — 六组需实测；单测仅证明恢复调度，不证明原生点击穿透。

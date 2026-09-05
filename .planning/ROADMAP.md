@@ -45,7 +45,7 @@ Plans:
 
 ### Phase 2: Windows 基座移植
 
-**Goal**: window_manager 0.5.2 的完整能力面（约 60 方法 + 15 事件名 + WindowListener）在 Windows 上逐字移植并通过实机行为对等验证。嫁接必须落在一块已被证明与上游一致的地基上——否则移植回归与嫁接回归无法区分。**退出门：对等验证通过之前不得开始任何嫁接。**
+**Goal**: window_manager 0.5.2 的完整能力面（约 60 方法 + 15 事件名 + WindowListener）在 Windows 上逐字移植并通过实机行为对等验证。嫁接必须落在一块已被证明与上游一致的地基上——否则移植回归与嫁接回归无法区分。**顺序门调整（2026-09-05 用户明确授权）：固定基座 f192dd5，基于源码对等检查、测试及构建开始 Phase 3/4；其余 Phase 2 人工项合并至最终验收，保持未验状态，不视为通过。**
 **Mode:** mvp
 **Depends on**: Phase 1
 **Requirements**: CAPB-01, CAPB-02, CAPB-03, CAPB-04, CAPB-05, CAPB-06, CAPB-07, CAPB-08, CAPB-09, CAPB-10, CAPB-11, CAPB-12
@@ -69,7 +69,7 @@ Plans:
 
 **Goal**: bitsdojo 的 frame 接管能力以独立 FrameController 形态嫁接进插件，作为**一个不可拆分的单元**落地：无边框 NCCALCSIZE 路线 + 四边原生缩放 + 协作式 GETMINMAXINFO（根治架空 setMinimumSize 的上游缺陷）+ 零 win32 Dart 依赖架构。Snap Layouts（HTMAXBUTTON）与可配置边缘宽度为 v2（DIFF-01/DIFF-02），不在本 roadmap。
 **Mode:** mvp
-**Depends on**: Phase 2（门：基座对等已验证）
+**Depends on**: Phase 2 机器基座 f192dd5（剩余人工验收经用户授权合并至最终，不伪记完成）
 **Requirements**: FRAME-01, FRAME-02, FRAME-03, FRAME-04, XPLAT-02, XPLAT-03
 **Success Criteria** (what must be TRUE):
 
