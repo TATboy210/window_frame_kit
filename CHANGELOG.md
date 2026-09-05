@@ -4,6 +4,16 @@ All notable changes to this project are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com) and the
 project adheres to [Semantic Versioning](https://semver.org).
 
+## 0.2.1 - 2026-09-05
+
+### Fixed
+
+- **Windows**: the top band shrank by the full resize width, making the
+  system paint a titlebar-black strip above the self-drawn titlebar. The
+  top now keeps exactly **1px** of non-client area (the DWM border line,
+  bitsdojo's `top -= 1` recipe), and top-edge resize is served by a
+  self-computed `HTTOP` over the client top band.
+
 ## 0.2.0 - 2026-09-05
 
 ### Changed

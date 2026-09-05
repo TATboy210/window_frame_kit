@@ -5,7 +5,7 @@ description: >-
   Frame takeover and full window management for Flutter desktop (Windows,
   Linux, macOS): frameless windows, native 4-edge resizing, and
   window-manager parity APIs.
-version: 0.2.0
+version: 0.2.1
 # D-01：三字段同指 github.com/TATboy210/window_frame_kit（one-way 决策，落盘即锁）
 homepage: https://github.com/TATboy210/window_frame_kit
 repository: https://github.com/TATboy210/window_frame_kit

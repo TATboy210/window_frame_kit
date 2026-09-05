@@ -189,17 +189,24 @@ std::optional<LRESULT> WindowManagerPlugin::HandleWindowProc(HWND hWnd,
         return 0;
       }
       case WM_NCHITTEST: {
-        // Defensive fullscreen guard only: with the band design the edge
-        // hit-testing is native (real NC area), so the graft just makes sure
-        // a fullscreen window can never report resize codes even if a stale
-        // frame calc left NC pixels behind. Non-fullscreen falls through to
-        // the system and the upstream branches untouched.
+        // Dual-path fullscreen guard: a fullscreen window must never report
+        // resize codes. Otherwise: left/right/bottom bands are real NC area
+        // (native, fall through untouched) and only the TOP edge needs the
+        // self-computed hit (its NC strip is 1px, too thin to grab).
         const bool fullscreen =
             window_manager->IsFullScreen() ||
             window_frame_kit::IsExternalFullscreenStyle(
                 GetWindowLongPtr(hWnd, GWL_STYLE));
         if (fullscreen) {
           return window_manager->is_resizable_ ? HTCLIENT : HTNOWHERE;
+        }
+        const LONG y = window_frame_kit::FrameYFromLParam(lParam);
+        RECT rect;
+        GetWindowRect(hWnd, &rect);
+        const auto top = window_frame_kit::FrameTopBandHitTest(
+            y, rect, window_frame_kit::FrameEdgeWidthForWindow(hWnd));
+        if (top.has_value()) {
+          return *top;
         }
         break;
       }

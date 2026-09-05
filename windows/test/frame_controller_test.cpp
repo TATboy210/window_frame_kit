@@ -16,36 +16,48 @@ static constexpr RECT kWin = {100, 200, 900, 800};
 
 // --- FrameApplyEdgeBands: equal-width NC-band inset (the redesign core) ---
 
-TEST(FrameApplyEdgeBands, InsetsAllFourSidesEqually) {
+TEST(FrameApplyEdgeBands, InsetsSidesEquallyTopOnePixel) {
   RECT rect = kWin;
   FrameApplyEdgeBands(&rect, /*band=*/8);
   EXPECT_EQ(rect.left, 108);
-  EXPECT_EQ(rect.top, 208);
   EXPECT_EQ(rect.right, 892);
   EXPECT_EQ(rect.bottom, 792);
-  // Uniform band on every side: 8px each.
-  EXPECT_EQ(rect.left - kWin.left, 8);
-  EXPECT_EQ(kWin.right - rect.right, 8);
-  EXPECT_EQ(rect.top - kWin.top, 8);
-  EXPECT_EQ(kWin.bottom - rect.bottom, 8);
+  // Top gets exactly 1px: the DWM border line only - a full top band makes
+  // the system paint a titlebar-black strip above the self-drawn titlebar.
+  EXPECT_EQ(rect.top - kWin.top, 1);
+  // L/R/bottom uniform 8px bands.
+  EXPECT_EQ(rect.left - kWin.left, kWin.right - rect.right);
+  EXPECT_EQ(rect.left - kWin.left, kWin.bottom - rect.bottom);
 }
 
-TEST(FrameApplyEdgeBands, ZeroBandIsIdentity) {
+TEST(FrameTopBandHitTest, ClientTopBandMapsToHttop) {
+  // Window top at y=200, 8px band: y in [200, 208] hits HTTOP.
+  EXPECT_EQ(*FrameTopBandHitTest(204, kWin, 8), HTTOP);
+  EXPECT_EQ(*FrameTopBandHitTest(200, kWin, 8), HTTOP);
+  EXPECT_EQ(*FrameTopBandHitTest(208, kWin, 8), HTTOP);
+  // One pixel below the band: interior.
+  EXPECT_FALSE(FrameTopBandHitTest(209, kWin, 8).has_value());
+  EXPECT_FALSE(FrameTopBandHitTest(500, kWin, 8).has_value());
+}
+
+TEST(FrameApplyEdgeBands, ZeroBandKeepsOnePixelTop) {
   RECT rect = kWin;
   FrameApplyEdgeBands(&rect, 0);
   EXPECT_EQ(rect.left, kWin.left);
-  EXPECT_EQ(rect.top, kWin.top);
   EXPECT_EQ(rect.right, kWin.right);
   EXPECT_EQ(rect.bottom, kWin.bottom);
+  // Top is always +1 regardless of band: it is the DWM border line, not a
+  // resize band.
+  EXPECT_EQ(rect.top, kWin.top + 1);
 }
 
 TEST(FrameApplyEdgeBands, BandScalesWithDpiInjectedValue) {
-  // 150% DPI: the caller computes a ~6px band and applies it; the math just
-  // honors whatever band it is given.
+  // 150% DPI: the caller computes a ~6px band and applies it to the sides;
+  // the top stays at the fixed 1px border line.
   RECT rect = kWin;
   FrameApplyEdgeBands(&rect, /*band=*/6);
   EXPECT_EQ(rect.left, 106);
-  EXPECT_EQ(rect.top, 206);
+  EXPECT_EQ(rect.top, 201);
   EXPECT_EQ(rect.right, 894);
   EXPECT_EQ(rect.bottom, 794);
 }

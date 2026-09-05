@@ -14,25 +14,51 @@
 #include <windows.h>
 
 #include <functional>
+#include <optional>
 // commctrl.h (SetWindowSubclass) no longer needed: the band design uses only
 // the top-level WM_NCCALCSIZE path, no child-window subclass.
 
 namespace window_frame_kit {
 
-/// // FRAME: Equal-width NC-band inset (2026-09-05 redesign per user target:
-/// self-drawn titlebar PLUS the system border - Win11 1px border + rounded
-/// corners - and uniform 4-edge resize). Instead of collapsing the client to
-/// the full window rect (pure borderless), the client shrinks by `band` px on
-/// ALL FOUR sides (upstream window_manager's "hidden" branch leaves the top
-/// band 0 on Win11, killing top-edge resize). The band stays a REAL
-/// non-client area: DefWindowProc serves HTTOP/HTLEFT/... natively, drag-
-/// resize repaints redraw the band itself (no themed-border flash), and
-/// WS_CAPTION is never touched so DWM keeps drawing the border/corners.
+// // FRAME: lParam cursor-Y extraction (windowsx.h GET_Y_LPARAM equivalent).
+// windowsx.h itself is deliberately NOT included: it defines function-like
+// macros such as `IsMaximized(hwnd) -> IsZoomed(hwnd)` which would hijack the
+// verbatim upstream `window_manager->IsMaximized()` method calls in the same
+// translation unit and break the build. Signed short keeps multi-monitor
+// negative coordinates intact.
+inline LONG FrameYFromLParam(LPARAM lParam) {
+  return static_cast<SHORT>(HIWORD(lParam));
+}
+
+/// // FRAME: NC-band inset (2026-09-05 redesign per user target: self-drawn
+/// titlebar PLUS the system border - Win11 1px border + rounded corners -
+/// and uniform 4-edge resize). Left/right/bottom shrink by `band` px - REAL
+/// non-client area served natively by DefWindowProc (no themed-border flash:
+/// the resize loop repaints the band itself). The TOP shrinks by exactly 1px
+/// (bitsdojo recipe): a full top band makes the system paint a titlebar-black
+/// strip above the self-drawn titlebar, while 1px keeps the DWM border line.
+/// Top-edge resize is recovered by FrameTopBandHitTest. WS_CAPTION is never
+/// touched so DWM keeps drawing the border/corners.
 inline void FrameApplyEdgeBands(RECT* rect, int band) {
   rect->left += band;
-  rect->top += band;
+  rect->top += 1;  // 1px top NC = the DWM border line only (bitsdojo recipe:
+                   // a full top band makes the system paint a titlebar-black
+                   // strip above the self-drawn titlebar).
   rect->right -= band;
   rect->bottom -= band;
+}
+
+/// // FRAME: Top-edge hit test over the CLIENT area. The left/right/bottom
+/// bands are real NC area (served by DefWindowProc), but the top band is
+/// only 1px - too thin to grab - so the delegate maps cursor positions in
+/// the top `band` px of the client to HTTOP (bitsdojo's self-computed
+/// NCHITTEST approach, minus its missing fullscreen guard).
+inline std::optional<LONG> FrameTopBandHitTest(LONG y, const RECT& rect,
+                                               int band) {
+  if (y >= rect.top && y <= rect.top + band) {
+    return HTTOP;
+  }
+  return std::nullopt;
 }
 
 /// // FRAME: External-fullscreen predicate - media_kit's fullscreen path
