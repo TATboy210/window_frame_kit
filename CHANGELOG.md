@@ -4,6 +4,18 @@ All notable changes to this project are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com) and the
 project adheres to [Semantic Versioning](https://semver.org).
 
+## 0.1.1 - 2026-09-05
+
+### Fixed
+
+- **Windows**: the themed border flashed back during a drag-resize. The
+  graft now drops `WS_CAPTION` (keeping `WS_THICKFRAME` for native edge
+  resizing) while enabled and restores the exact pre-graft style on
+  disable — the Chromium/Electron frameless recipe. Without it,
+  `DefWindowProc` repainted the non-client area computed from
+  `WS_CAPTION` inside the resize modal loop, ignoring the
+  `WM_NCCALCSIZE` return 0 mapping.
+
 ## 0.1.0 - 2026-09-05
 
 Initial public release.
