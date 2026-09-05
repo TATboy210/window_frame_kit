@@ -68,16 +68,19 @@ if [ "$HOME_HASH" != "80e84d0eaa991dcf443d4142fec9dc3dfa8fa9ac" ]; then
   fail=1
 fi
 
-# main.dart 特例：logger 注册恰 2 行（import + addListener），滤除后归一化零差
+# main.dart 特例：logger 注册恰 2 行（import + addListener），滤除后归一化
+# diff 与快照逐字节一致（03-04 起快照含 customFrame 冷启动演示行）
 LOGGER_LINES=$(grep -ciE 'window_event_logger|windoweventlogger' example/lib/main.dart)
 if [ "$LOGGER_LINES" -ne 2 ]; then
   echo "VERBATIM FAIL: example/lib/main.dart logger-line count $LOGGER_LINES != 2"
   fail=1
 fi
-if ! diff <(grep -viE 'window_event_logger|windoweventlogger' example/lib/main.dart \
-    | sed 's/window_frame_kit/window_manager/g') \
-    "$WM/example/lib/main.dart" >/dev/null; then
-  echo "VERBATIM FAIL: example/lib/main.dart"
+MAIN_ACTUAL=$(diff <(grep -viE 'window_event_logger|windoweventlogger' example/lib/main.dart \
+    | sed 's/window_frame_kit/window_manager/g' | tr -d '\r') \
+    "$WM/example/lib/main.dart" | tr -d '\r')
+MAIN_EXPECTED=$(tr -d '\r' < tool/verbatim_expected/example_main.diff)
+if [ "$MAIN_ACTUAL" != "$MAIN_EXPECTED" ]; then
+  echo "VERBATIM FAIL: example/lib/main.dart differs from pinned snapshot"
   fail=1
 fi
 
