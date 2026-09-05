@@ -4,7 +4,7 @@
 # 对照源 $1 = 上游 window_manager-0.5.2 目录（本地 pub cache 或 CI curl 解包）。
 # 协议（02-RESEARCH Pattern 3）：单条归一化 sed 's/window_frame_kit/window_manager/g'
 # 同时消掉 import 路径、channel 常量、example 包名/title 串——它们全部由包名派生。
-# 归一化后 17 个 Dart 逐字区文件必须与上游字节级零差。
+# 归一化后 16 个 Dart 文件与上游字节级零差；home.dart 按授权偏差固定摘要。
 #
 # main.dart 特例（D-04/Open Q2 定案）：先滤除事件日志注册行
 # （含 window_event_logger / WindowEventLogger，大小写不敏感），滤除行数必须恰为 2。
@@ -19,7 +19,7 @@ fail=0
 # 包名派生串一次归一（逐字区唯一允许的机械偏离）
 norm() { sed 's/window_frame_kit/window_manager/g' "$1"; }
 
-# 16 对普通逐字区文件（main.dart 走下方特例）
+# 15 对普通逐字区文件（main.dart 和 home.dart 走下方精确特例）
 declare -A DART_PAIRS=(
   [lib/window_frame_kit.dart]=lib/window_manager.dart
   [lib/src/window_manager.dart]=lib/src/window_manager.dart
@@ -34,7 +34,6 @@ declare -A DART_PAIRS=(
   [lib/src/widgets/window_caption.dart]=lib/src/widgets/window_caption.dart
   [lib/src/widgets/window_caption_button.dart]=lib/src/widgets/window_caption_button.dart
   [test/window_manager_test.dart]=test/window_manager_test.dart
-  [example/lib/pages/home.dart]=example/lib/pages/home.dart
   [example/lib/utils/config.dart]=example/lib/utils/config.dart
   [example/integration_test/window_manager_test.dart]=example/integration_test/window_manager_test.dart
 )
@@ -45,6 +44,15 @@ for ours in "${!DART_PAIRS[@]}"; do
     fail=1
   fi
 done
+
+# home.dart 唯一额外例外：用户授权移除托盘（DEVIATIONS #7）。
+# 固定已审查版本的归一化 blob，不能任意编辑 example 后仍蒙混过门。
+# tr 去除 CR 使 Windows checkout 与 Linux CI 的行尾一致。
+HOME_HASH=$(norm example/lib/pages/home.dart | tr -d '\r' | git hash-object --stdin)
+if [ "$HOME_HASH" != "80e84d0eaa991dcf443d4142fec9dc3dfa8fa9ac" ]; then
+  echo "VERBATIM FAIL: home.dart differs from reviewed no-tray deviation #7"
+  fail=1
+fi
 
 # main.dart 特例：logger 注册恰 2 行（import + addListener），滤除后归一化零差
 LOGGER_LINES=$(grep -ciE 'window_event_logger|windoweventlogger' example/lib/main.dart)
@@ -72,6 +80,6 @@ if [ "$n2" -ne 2 ]; then
 fi
 
 if [ "$fail" -eq 0 ]; then
-  echo "VERBATIM PROOF OK (17 dart files zero-diff, cpp residue 22+2)"
+  echo "VERBATIM PROOF OK (16 dart files zero-diff, 1 pinned example deviation, cpp residue 22+2)"
 fi
 exit "$fail"

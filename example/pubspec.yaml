@@ -29,12 +29,9 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
 
-  # 上游 window_manager 0.5.2 example 同款三依赖（D-04 载体保真）：
-  # bot_toast = toast 提示；preference_list = 设置列表 UI；
-  # tray_manager = 托盘（CAPB-11 鼠标穿透后的唯一恢复路径，硬理由保留）
+  # 保留上游提示和列表；鼠标穿透由 example 限时恢复，不再依赖托盘。
   bot_toast: ^4.1.3
   preference_list: ^0.0.2
-  tray_manager: ^0.5.3
 
 dev_dependencies:
   integration_test:

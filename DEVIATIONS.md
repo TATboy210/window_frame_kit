@@ -19,6 +19,8 @@ Upstream anchors refer to the pinned pub-cache versions:
 | 5 | window_manager-0.5.2/windows/CMakeLists.txt:10-17 + skeleton gtest/test block | windows/CMakeLists.txt (merge, lands in 02-02) | Three-point merge: PLUGIN_SOURCES += `window_manager.cpp`; `_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING` on BOTH PLUGIN_NAME and TEST_RUNNER targets; skeleton gtest block + `CMAKE_POLICY_VERSION_MINIMUM 3.5` load-bearing line preserved | Upstream has no native test target — codecvt deprecation vs /W4 /WX needs the define on both targets (Pitfall 5) | n/a (structural merge) |
 | 6 | window_manager-0.5.2/example/lib/main.dart:3-5, pages/home.dart:10-11,703,947, integration_test/window_manager_test.dart:6,14,118 | example/lib/**, example/integration_test/** | Package-derived renames (main.dart 3 lines / home.dart 4 lines / integration_test 3 lines) + main.dart 2 new logger-registration lines + new file example/lib/utils/window_event_logger.dart | D-04 real-machine verification carrier: console event log = SC3 evidence source; upstream home.dart:1087 `print` hook preserved as-is | n/a (verbatim_diff.sh main.dart special case filters exactly 2 lines) |
 
+| 7 | window_manager-0.5.2/example/lib/pages/home.dart:9,39,60-100,888-899,1027-1049 | example/lib/pages/home.dart + utils/mouse_passthrough_recovery.dart | 移除 tray listener/menu/init，穿透改为 5 秒限时恢复；平台写入串行化并在销毁时恢复 | 用户 2026-09-05 指令（WINDOWS #7）；不改插件 API/native。恢复测试纳入 CI，移除 tray 依赖及 Linux appindicator；home.dart 归一化摘要由 verbatim_diff.sh 精确固定，其余 16 文件与 C++ 22+2 不变 | `// DEV:`（home.dart import 处） |
+
 *(Row above is a placeholder to be replaced with the real entry when the
 Phase 3 graft lands. New rows append below — one row per functional block,
 never per line.)*

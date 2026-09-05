@@ -6,7 +6,9 @@ import 'package:bot_toast/bot_toast.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:preference_list/preference_list.dart';
-import 'package:tray_manager/tray_manager.dart';
+// DEV: 无托盘恢复路径（DEVIATIONS #7）。
+import 'dart:async';
+import 'package:window_frame_kit_example/utils/mouse_passthrough_recovery.dart';
 import 'package:window_frame_kit/window_frame_kit.dart';
 import 'package:window_frame_kit_example/utils/config.dart';
 
@@ -36,7 +38,8 @@ class HomePage extends StatefulWidget {
 const _kIconTypeDefault = 'default';
 const _kIconTypeOriginal = 'original';
 
-class _HomePageState extends State<HomePage> with TrayListener, WindowListener {
+class _HomePageState extends State<HomePage> with WindowListener {
+  MousePassthroughRecovery? _mouseRecovery;
   bool _isPreventClose = false;
   Size _size = _kSizes.first;
   Size? _minSize;
@@ -59,44 +62,28 @@ class _HomePageState extends State<HomePage> with TrayListener, WindowListener {
 
   @override
   void initState() {
-    trayManager.addListener(this);
+    _mouseRecovery = MousePassthroughRecovery(
+      apply: _applyMousePassthrough,
+      onError: (error, stack) {
+        debugPrint('鼠标穿透恢复失败：$error\n$stack');
+        if (mounted) BotToast.showText(text: '鼠标交互恢复失败：$error');
+      },
+    );
     windowManager.addListener(this);
-    _init();
     super.initState();
   }
 
   @override
   void dispose() {
-    trayManager.removeListener(this);
+    unawaited(_mouseRecovery?.dispose());
     windowManager.removeListener(this);
     super.dispose();
   }
 
-  Future<void> _init() async {
-    await trayManager.setIcon(
-      Platform.isWindows
-          ? 'images/tray_icon_original.ico'
-          : 'images/tray_icon_original.png',
-    );
-    Menu menu = Menu(
-      items: [
-        MenuItem(
-          key: 'show_window',
-          label: 'Show Window',
-        ),
-        MenuItem(
-          key: 'set_ignore_mouse_events',
-          label: 'setIgnoreMouseEvents(false)',
-        ),
-        MenuItem.separator(),
-        MenuItem(
-          key: 'exit_app',
-          label: 'Exit App',
-        ),
-      ],
-    );
-    await trayManager.setContextMenu(menu);
-    setState(() {});
+  /// 平台成功后再同步开关；销毁后的恢复只操作原生窗口，不调用 setState。
+  Future<void> _applyMousePassthrough(bool enabled) async {
+    await windowManager.setIgnoreMouseEvents(enabled, forward: false);
+    if (mounted) setState(() => _isIgnoreMouseEvents = enabled);
   }
 
   Future<void> _handleSetIcon(String iconType) async {
@@ -886,15 +873,10 @@ class _HomePageState extends State<HomePage> with TrayListener, WindowListener {
               ),
             ),
             PreferenceListSwitchItem(
-              title: const Text('setIgnoreMouseEvents'),
+              title: const Text('setIgnoreMouseEvents (5s auto-reset)'),
               value: _isIgnoreMouseEvents,
               onChanged: (newValue) async {
-                _isIgnoreMouseEvents = newValue;
-                await windowManager.setIgnoreMouseEvents(
-                  _isIgnoreMouseEvents,
-                  forward: false,
-                );
-                setState(() {});
+                await _mouseRecovery?.setEnabled(newValue);
               },
             ),
             PreferenceListItem(
@@ -1022,30 +1004,6 @@ class _HomePageState extends State<HomePage> with TrayListener, WindowListener {
       },
       child: _build(context),
     );
-  }
-
-  @override
-  void onTrayIconMouseDown() {
-    windowManager.show();
-  }
-
-  @override
-  void onTrayIconRightMouseDown() {
-    trayManager.popUpContextMenu();
-  }
-
-  @override
-  Future<void> onTrayMenuItemClick(MenuItem menuItem) async {
-    switch (menuItem.key) {
-      case 'show_window':
-        await windowManager.focus();
-        break;
-      case 'set_ignore_mouse_events':
-        _isIgnoreMouseEvents = false;
-        await windowManager.setIgnoreMouseEvents(_isIgnoreMouseEvents);
-        setState(() {});
-        break;
-    }
   }
 
   @override

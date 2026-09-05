@@ -56,17 +56,61 @@ isAlwaysOnBottom（skip: macOS||Windows）、isMovable（skip: Linux||Windows）
 
 ## 批② UAT 判定表（CAPB-04/05/06 — 状态操作/查询/事件流）
 
-> 02-04 计划追加；占位。
+> 02-04 准备半边：源码预期已核实；以下均为待验预期，不是实际通过记录。人工项合并至 phase 末。
+> 行号基准：windows/window_frame_kit_plugin.cpp（移植版）。
 
-**批② sign-off:** （待 02-04）
+| 操作 | 预期事件/行为 | native 发射点 | 用户回答 | 日期 |
+|---|---|---|---|---|
+| 激活/失焦 | focus / blur | 208 / 210 | deferred | — |
+| 最大化/还原 | maximize / unmaximize | 303 / 311 | deferred | — |
+| 最小化/恢复 | minimize / restore | 306 / 314 | deferred | — |
+| 持续拖边/松手 | resize / resized | 232 / 218 | deferred | — |
+| 持续移动/松手 | move / moved | 228 / 222 | deferred | — |
+| 进入/退出全屏 | enter-full-screen / leave-full-screen | 294 / 299 | deferred | — |
+| 关闭（先开 preventClose） | close；确认对话框，取消后仍可操作 | 320 | deferred | — |
+| show / hide | raw onWindowEvent，无具名 hook；hide 后需可恢复 | 326 / 328 | deferred | — |
+| 禁用/恢复 resize | isResizable=false 时拖边无效，恢复后可缩放 | WM_NCHITTEST 分支及 SetResizable | deferred | — |
+
+### 三类上游预期（勿误判回归）
+
+| 类型 | 预期 | 用户回答 | 日期 |
+|---|---|---|---|
+| show/hide | raw onWindowEvent；无 onWindowShow/onWindowHide 具名回调 | deferred | — |
+| docked/undocked | expected-absent：Windows native 无发射点 | deferred | — |
+| isMovable / setMovable | MissingPluginException；plugin.cpp:586 NotImplemented | deferred | — |
+| isVisibleOnAllWorkspaces / setVisibleOnAllWorkspaces | MissingPluginException；同上 | deferred | — |
+| setBadgeLabel / grabKeyboard / ungrabKeyboard | MissingPluginException；同上 | deferred | — |
+
+### 状态交叉回读
+
+| 操作 | 预期查询 | 用户回答 | 日期 |
+|---|---|---|---|
+| maximize / unmaximize | isMaximized true / false | deferred | — |
+| minimize / restore（由外部恢复后查） | isMinimized true / false；不可用失焦后点击查询代替最小化瞬间记录 | deferred | — |
+| setFullScreen true / false | isFullScreen true / false | deferred | — |
+| 激活 / 失焦 | isFocused true / false；读取不能抢回焦点 | deferred | — |
+| setResizable false / true | isResizable false / true | deferred | — |
+| setSkipTaskbar true / false | 任务栏图标消失 / 恢复（启动完成后操作） | deferred | — |
+| setAlwaysOnTop true / false | 与批③置顶验证共用目视证据 | deferred | — |
+
+**批② sign-off:** DEFERRED — 11 必验 hook、resized/moved、查询回读及特殊预期需实际操作后签核。
 
 ---
 
 ## 批③ UAT 判定表（CAPB-07~12 — 拦截/标题栏/拖拽/外观/穿透/菜单）
 
-> 02-05 计划追加；占位。
+> 02-05：按用户要求移除托盘，CAPB-11 恢复改为 5 秒自动复位。以下全部待真实操作，不以单测代替目视。
 
-**批③ sign-off:** （待 02-05）
+| 组 | 操作与预期 | 用户回答 | 日期 |
+|---|---|---|---|
+| CAPB-07 关闭拦截 | 打开 preventClose → 点关闭出现确认框且窗口保留；No 留存；Yes 显式 destroy 退出 | deferred | — |
+| CAPB-08 标题栏 | hidden/normal 往返；getTitleBarHeight 物理像素值>0，不能按逻辑像素误判 | deferred | — |
+| CAPB-09 拖动 | DragToMoveArea 移动；红色 DragToResizeArea 八方向缩放；全屏拖动被 Dart 守卫拒绝 | deferred | — |
+| CAPB-10 外观 | title/getTitle、窗口图标、阴影、透明度、背景色、brightness、置顶、置底逐项观察（Windows上游不支持项不冒充有效） | deferred | — |
+| CAPB-11 穿透 | 开启 setIgnoreMouseEvents 后点击落到下层；5 秒后恢复可点击、开关自动归 false；通知区无托盘图标；forward 在 Windows 无效=上游语义 | deferred | — |
+| CAPB-12 系统菜单 | 初始化之后 setAsFrameless，再 popUpWindowMenu，菜单显示且移动/大小/最小化可用 | deferred | — |
+
+**批③ sign-off:** DEFERRED — 六组需实测；单测仅证明恢复调度，不证明原生点击穿透。
 
 ---
 
