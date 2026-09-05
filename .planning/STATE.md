@@ -3,16 +3,16 @@ gsd_state_version: 1.0
 current_phase: 02
 current_phase_name: Windows 基座移植
 status: executing
-stopped_at: Completed 02-02-PLAN.md
-last_updated: "2026-09-05T04:40:21.054Z"
+stopped_at: Completed 02-03-PLAN.md (machine half; batch① UAT deferred to phase-end)
+last_updated: "2026-09-05T05:08:15.575Z"
 last_activity: 2026-09-05
-last_activity_desc: 02-02 complete (C++ verbatim port + tracer sign-off)
-state_head: f055eeb3b8dfd236c3647abff9deec7623b20aae
+last_activity_desc: 02-03 machine half complete (integration_test local run; batch① UAT deferred to phase-end)
+state_head: ec6ca538306a8b6a248d1f7eaadd14e69699493c
 progress:
   total_phases: 6
   completed_phases: 1
   total_plans: 9
-  completed_plans: 6
+  completed_plans: 7
   percent: 17
 ---
 
@@ -28,17 +28,17 @@ See: .planning/PROJECT.md (updated 2026-09-04)
 ## Current Position
 
 Phase: 02 (Windows 基座移植) — EXECUTING
-Plan: 3 of 5
+Plan: 4 of 5
 Status: Ready to execute
-Last activity: 2026-09-05 — 02-02 complete (C++ verbatim port + tracer sign-off)
+Last activity: 2026-09-05 — 02-03 machine half complete (integration_test local run; batch① UAT deferred to phase-end)
 
-Progress: [██░░░░░░░░] 17% (Phase 01 complete 4/4; Phase 02 executing 2/5)
+Progress: [██░░░░░░░░] 17% (Phase 01 complete 4/4; Phase 02 executing 3/5)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 6
+- Total plans completed: 7
 - Average duration: -
 - Total execution time: 0 hours
 
@@ -47,7 +47,7 @@ Progress: [██░░░░░░░░] 17% (Phase 01 complete 4/4; Phase 02 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 01 | 4 | - | - |
-| 02 | 2 | - | - |
+| 02 | 3 | - | - |
 
 **Recent Trend:**
 
@@ -65,6 +65,7 @@ Progress: [██░░░░░░░░] 17% (Phase 01 complete 4/4; Phase 02 
 | Phase 01 P04 | 38 min | 2 tasks | 1 files |
 | Phase 02 P01 | 44 min | 3 tasks | 41 files |
 | Phase 02 P02 | 55 min | 3 tasks | 6 files |
+| Phase 02 P03 | 25min | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -91,6 +92,8 @@ Recent decisions affecting current work:
 - [Phase 01]: CI native build 用 working-directory: example（插件根为 library-only CMake 壳，上游 WM build.yml 同款）；双 remote 仓库中 gh CLI 解析选错仓库，一律显式 -R TATboy210/window_frame_kit
 - [Phase 02]: 桥接头/标识符计数以 RESEARCH Example 4 实证形态优先于规划估值（14 行 ≤25 门 + 22 行 diff 封顶即精确面）；checkpoint 拉起形态固化为可见控制台 + Tee 日志双写（02-03/04/05 复用）
 - [Phase 02]: 用户指令移除 example 系统托盘 → 02-05 执行（WINDOWS.md #7；CAPB-11 穿透恢复路径需替代：定时自动复位/快捷键候选）；preventClose 对话框语义按上游对等修正：home.dart 开关默认 OFF，关闭即退为非缺陷
+- [Phase 02]: [Phase 02]: integration_test isFocused 红项归类=环境（Windows 前台激活限制，runner 控制台持前台）：实现与上游 0.5.2 逐字一致排除移植回归，重试确定性复现排除 flake；不修断言不改码，批① UAT 判定项 1 目视面覆盖 focus 语义
+- [Phase 02]: [Phase 02]: 用户 auto-run 指令（2026-09-05）：02-03/04/05 人工 checkpoint DEFERRED 至 phase 末合并 UAT 会话（orchestrator 主持）；UAT-EVIDENCE 账本判定表预填上游语义预期值，批量会话直接续写签核
 
 ### Pending Todos
 
@@ -113,6 +116,6 @@ Items acknowledged and deferred at milestone close, most recent first:
 
 ## Session Continuity
 
-Last session: 2026-09-05T04:40:20.826Z
-Stopped at: Completed 02-02-PLAN.md
+Last session: 2026-09-05T05:07:22.853Z
+Stopped at: Completed 02-03-PLAN.md (machine half; batch① UAT deferred to phase-end)
 Resume file: None
