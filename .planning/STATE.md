@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 current_phase: 02
 current_phase_name: Windows 基座移植
 status: executing
-stopped_at: Completed 02-03-PLAN.md (machine half; batch① UAT deferred to phase-end)
+stopped_at: 02-04 preparation and 02-05 no-tray implementation verified locally; review and consolidated UAT pending
 last_updated: "2026-09-05T05:08:15.575Z"
 last_activity: 2026-09-05
 last_activity_desc: 02-03 machine half complete (integration_test local run; batch① UAT deferred to phase-end)
@@ -28,9 +28,9 @@ See: .planning/PROJECT.md (updated 2026-09-04)
 ## Current Position
 
 Phase: 02 (Windows 基座移植) — EXECUTING
-Plan: 4 of 5
-Status: Ready to execute
-Last activity: 2026-09-05 — 02-03 machine half complete (integration_test local run; batch① UAT deferred to phase-end)
+Plan: 5 of 5（02-04/05 partial：人工验收未完成）
+Status: 本地机器验证通过，等待审查与合批 UAT
+Last activity: 2026-09-05 — 托盘移除、五秒穿透恢复及6个测试落地；analyze零问题、root13过、恢复6过、覆盖93.1%、Windows Release构建与启动通过。用户已授权：Phase 2 剩余人工验收合并至最终合批 UAT，Phase 3/4 基于基座 f192dd5 开展（只放宽顺序，不豁免最终验收）。
 
 Progress: [██░░░░░░░░] 17% (Phase 01 complete 4/4; Phase 02 executing 3/5)
 
@@ -101,7 +101,7 @@ None yet.
 
 ### Blockers/Concerns
 
-- Phase 3 需 phase-level research：Win32 消息级手术；子类化安装时序（ensureInitialized 时 FLUTTERVIEW 是否已存在，回退 CBT hook/WM_CREATE 监听）标注"实现时验证"
+- Phase 3 phase-level research 已完成（2026-09-05，结论落盘 03-RESEARCH.md）：接入点 = HandleWindowProc 顶层 delegate（plugin.cpp:135-340）+ 子窗口 SetWindowSubclass；ensureInitialized 时 registrar->GetView() 已可用（plugin.cpp:347-350），无需 CBT hook 回退；全屏双路径判定（IsFullScreen() + WS_OVERLAPPEDWINDOW 样式检查）。剩余不确定性：hot restart 场景的子类化时序，标注"实现时验证"
 - Phase 4 需关注 Wayland CSD/SSD resize 缺口（合成器差异决定 widget 兜底范围）
 - REQUIREMENTS.md 原"22 total"为计数笔误，实际 26 条 v1（roadmap 创建时已修正 Traceability）
 

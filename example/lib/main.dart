@@ -17,6 +17,7 @@ void main() async {
     skipTaskbar: false,
     titleBarStyle: TitleBarStyle.hidden,
     windowButtonVisibility: false,
+    customFrame: true, // // FRAME: cold-start borderless demo (SC1, 03-04)
   );
   windowManager.waitUntilReadyToShow(windowOptions, () async {
     await windowManager.show();

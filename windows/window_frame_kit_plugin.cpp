@@ -13,6 +13,7 @@
 #include <sstream>
 
 #include "window_manager.cpp"
+#include "frame_controller.h"  // // FRAME: Phase 3 custom-frame graft (03-03)
 
 namespace {
 
@@ -47,6 +48,9 @@ class WindowManagerPlugin : public flutter::Plugin {
 
   WindowManager* window_manager;
   flutter::PluginRegistrarWindows* registrar;
+
+  // // FRAME: graft state machine; null until first setCustomFrame(true).
+  std::unique_ptr<window_frame_kit::FrameController> frame_controller_;
 
   // The ID of the WindowProc delegate registration.
   int window_proc_id = -1;
@@ -118,6 +122,9 @@ WindowManagerPlugin::WindowManagerPlugin(
 }
 
 WindowManagerPlugin::~WindowManagerPlugin() {
+  // // FRAME: drop the child subclass before the delegate unregisters so no
+  // hit-test can reach a dying FrameController afterwards.
+  frame_controller_ = nullptr;
   registrar->UnregisterTopLevelWindowProcDelegate(window_proc_id);
   channel = nullptr;
 }
@@ -137,6 +144,94 @@ std::optional<LRESULT> WindowManagerPlugin::HandleWindowProc(HWND hWnd,
                                                              WPARAM wParam,
                                                              LPARAM lParam) {
   std::optional<LRESULT> result = std::nullopt;
+
+  // // FRAME: custom-frame takeover (03-03) - handled BEFORE the upstream
+  // branches so the graft owns NCCALCSIZE/NCHITTEST/GETMINMAXINFO while
+  // enabled; when disabled, every message falls through to upstream 0.5.2
+  // behavior unchanged.
+  if (frame_controller_ != nullptr && frame_controller_->IsEnabled()) {
+    switch (message) {
+      case WM_NCCALCSIZE: {
+        // Borderless mapping: no themed border, no Win11 8px top inset. When
+        // maximized, clamp the client rect to the work area so content
+        // neither crops nor covers the taskbar (nearest monitor resolved
+        // from the window rect per upstream issue #489 practice).
+        if (wParam && ::IsZoomed(hWnd)) {
+          NCCALCSIZE_PARAMS* sz =
+              reinterpret_cast<NCCALCSIZE_PARAMS*>(lParam);
+          HMONITOR monitor =
+              MonitorFromRect(&sz->rgrc[0], MONITOR_DEFAULTTONEAREST);
+          MONITORINFO mi = {};
+          mi.cbSize = sizeof(mi);
+          if (monitor != nullptr && GetMonitorInfo(monitor, &mi)) {
+            window_frame_kit::FrameAdjustNccalcSizeToWork(&sz->rgrc[0],
+                                                          mi.rcWork);
+          }
+        }
+        if (wParam) {
+          return 0;
+        }
+        break;
+      }
+      case WM_NCHITTEST: {
+        // Dual-path fullscreen guard: the plugin's own fullscreen plus the
+        // external style-strip path (media_kit). Either one makes the edges
+        // inert (host fullscreen_resize_guard parity); a non-resizable
+        // window keeps the upstream HTNOWHERE semantics.
+        const bool fullscreen =
+            window_manager->IsFullScreen() ||
+            window_frame_kit::IsExternalFullscreenStyle(
+                GetWindowLongPtr(hWnd, GWL_STYLE));
+        if (!window_frame_kit::FrameHitAllowed(
+                window_manager->is_resizable_, fullscreen)) {
+          return window_manager->is_resizable_ ? HTCLIENT : HTNOWHERE;
+        }
+        const LONG x = window_frame_kit::FrameXFromLParam(lParam);
+        const LONG y = window_frame_kit::FrameYFromLParam(lParam);
+        RECT rect;
+        GetWindowRect(hWnd, &rect);
+        const auto hit = window_frame_kit::FrameEdgeHitTest(
+            x, y, rect, window_frame_kit::FrameEdgeWidthForWindow(hWnd));
+        if (hit.has_value()) {
+          return *hit;
+        }
+        break;  // interior: fall through, system default HTCLIENT applies.
+      }
+      case WM_GETMINMAXINFO: {
+        // Cooperative merge (DEVIATIONS #1): upstream min/max track sizes
+        // still apply; maximized additionally clamps to the work area
+        // instead of bitsdojo's unconstrained `return 0`.
+        MINMAXINFO* info = reinterpret_cast<MINMAXINFO*>(lParam);
+        RECT work = {};
+        HMONITOR monitor = MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST);
+        MONITORINFO mi = {};
+        mi.cbSize = sizeof(mi);
+        if (monitor != nullptr && GetMonitorInfo(monitor, &mi)) {
+          work = mi.rcWork;
+        }
+        window_frame_kit::FrameAdjustMinMaxInfo(
+            info, window_manager->minimum_size_.x,
+            window_manager->minimum_size_.y, window_manager->maximum_size_.x,
+            window_manager->maximum_size_.y, window_manager->pixel_ratio_,
+            work, ::IsZoomed(hWnd) != FALSE);
+        return 0;
+      }
+      case WM_SYSCOMMAND: {
+        // Fullscreen windows must not be resizable through the system menu
+        // either (SC_SIZE covers the Alt+Space "Size" path).
+        const bool fullscreen =
+            window_manager->IsFullScreen() ||
+            window_frame_kit::IsExternalFullscreenStyle(
+                GetWindowLongPtr(hWnd, GWL_STYLE));
+        if (fullscreen && (wParam & 0xFFF0) == SC_SIZE) {
+          return 0;
+        }
+        break;
+      }
+      default:
+        break;
+    }
+  }
 
   if (message == WM_DPICHANGED) {
     window_manager->pixel_ratio_ =
@@ -582,6 +677,35 @@ void WindowManagerPlugin::HandleMethodCall(
         std::get<flutter::EncodableMap>(*method_call.arguments());
     window_manager->StartResizing(args);
     result->Success(flutter::EncodableValue(true));
+  } else if (method_name.compare("setCustomFrame") == 0) {
+    // // FRAME: graft entry point (03-03) - arms/disarms the FrameController.
+    // The child view is located the same way the upstream fullscreen restore
+    // path finds it, with a GW_CHILD fallback; state probes are live
+    // callbacks so setResizable/setFullScreen reflect immediately.
+    const flutter::EncodableMap& args =
+        std::get<flutter::EncodableMap>(*method_call.arguments());
+    bool isCustomFrame = std::get<bool>(
+        args.at(flutter::EncodableValue("isCustomFrame")));
+    if (isCustomFrame) {
+      const HWND root = window_manager->GetMainWindow();
+      HWND child = FindWindowEx(root, nullptr, L"FLUTTERVIEW", nullptr);
+      if (child == nullptr) {
+        child = GetWindow(root, GW_CHILD);
+      }
+      if (frame_controller_ == nullptr) {
+        frame_controller_ =
+            std::make_unique<window_frame_kit::FrameController>();
+      }
+      const bool ok = frame_controller_->Enable(
+          root, child, [this]() { return window_manager->is_resizable_; },
+          [this]() { return window_manager->IsFullScreen(); });
+      result->Success(flutter::EncodableValue(ok));
+    } else {
+      if (frame_controller_ != nullptr) {
+        frame_controller_->Disable();
+      }
+      result->Success(flutter::EncodableValue(true));
+    }
   } else {
     result->NotImplemented();
   }

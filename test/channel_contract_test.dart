@@ -309,4 +309,70 @@ void main() {
     expect(calls.map((c) => c.method), ['popUpWindowMenu']);
     messenger.setMockMethodCallHandler(channel, null);
   });
+
+  // --- Phase 3: customFrame 嫁接通道(// FRAME: dart) ---
+
+  test('setCustomFrame sends isCustomFrame bool flag', () async {
+    MethodCall? captured;
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      captured = call;
+      return null;
+    });
+    await windowManager.setCustomFrame(true);
+    expect(captured!.method, 'setCustomFrame');
+    expect((captured!.arguments as Map)['isCustomFrame'], true);
+
+    await windowManager.setCustomFrame(false);
+    expect((captured!.arguments as Map)['isCustomFrame'], false);
+    messenger.setMockMethodCallHandler(channel, null);
+  });
+
+  test(
+    'WindowOptions without customFrame does not send setCustomFrame',
+    () async {
+      final calls = <MethodCall>[];
+      messenger.setMockMethodCallHandler(channel, (call) async {
+        calls.add(call);
+        // 上游 waitUntilReadyToShow 会查询三项状态。
+        return call.method == 'isFullScreen' ||
+                call.method == 'isMaximized' ||
+                call.method == 'isMinimized'
+            ? false
+            : null;
+      });
+      const options = WindowOptions(size: Size(800, 600));
+      await windowManager.waitUntilReadyToShow(options);
+      // 默认关闭保持上游兼容:无 setCustomFrame 出站调用。
+      expect(calls.map((c) => c.method), isNot(contains('setCustomFrame')));
+      messenger.setMockMethodCallHandler(channel, null);
+    },
+  );
+
+  test('WindowOptions.customFrame=true applies after titleBarStyle, before state restore', () async {
+    final calls = <MethodCall>[];
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      calls.add(call);
+      return call.method == 'isFullScreen' ||
+              call.method == 'isMaximized' ||
+              call.method == 'isMinimized'
+          ? false
+          : null;
+    });
+    const options = WindowOptions(
+      titleBarStyle: TitleBarStyle.hidden,
+      customFrame: true,
+    );
+    await windowManager.waitUntilReadyToShow(options);
+    final methods = calls.map((c) => c.method).toList();
+    final titleBarIdx = methods.indexOf('setTitleBarStyle');
+    final customFrameIdx = methods.indexOf('setCustomFrame');
+    final fullscreenIdx = methods.indexOf('isFullScreen');
+    expect(titleBarIdx, isNot(-1), reason: 'titleBarStyle 应已下发');
+    expect(customFrameIdx, isNot(-1), reason: 'customFrame 应已下发');
+    // 规范初始化顺序:frame 接管先于全屏/最大化状态恢复。
+    expect(customFrameIdx, greaterThan(titleBarIdx));
+    expect(customFrameIdx, lessThan(fullscreenIdx));
+    expect((calls[customFrameIdx].arguments as Map)['isCustomFrame'], true);
+    messenger.setMockMethodCallHandler(channel, null);
+  });
 }

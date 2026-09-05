@@ -25,7 +25,8 @@ Frame takeover and complete window management events for Flutter desktop apps (W
 
   s.dependency 'FlutterMacOS'
 
-  s.platform = :osx, '10.11'
+  # 与现有 SwiftPM/Flutter 模板一致，不能宣称未验证的旧系统支持。
+  s.platform = :osx, '12.0'
   s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES' }
   s.swift_version = '5.0'
 end

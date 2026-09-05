@@ -133,6 +133,13 @@ class WindowManager {
       );
     }
 
+    // // FRAME: graft customFrame — frame takeover must land after titleBarStyle
+    // and before fullscreen/maximized state restore so the native subclass is
+    // installed before any geometry-affecting state transition.
+    if (options?.customFrame != null) {
+      await setCustomFrame(options!.customFrame!);
+    }
+
     if (await isFullScreen()) await setFullScreen(false);
     if (await isMaximized()) await unmaximize();
     if (await isMinimized()) await restore();
@@ -757,6 +764,27 @@ class WindowManager {
   /// @platforms linux
   Future<bool> ungrabKeyboard() async {
     return await _channel.invokeMethod('ungrabKeyboard');
+  }
+
+  /// // FRAME: Enables or disables the native custom frame takeover.
+  ///
+  /// When enabled, the plugin's FrameController handles the window frame
+  /// natively: borderless WM_NCCALCSIZE (no themed border, no Win11 8px top
+  /// inset), 4-edge/4-corner DPI-aware WM_NCHITTEST resizing, and cooperative
+  /// WM_GETMINMAXINFO (minimumSize/maximumSize stay effective, maximized
+  /// window clamps to the monitor work area). Resizing is force-disabled in
+  /// fullscreen, covering both the plugin's own fullscreen state and an
+  /// external fullscreen path that strips WS_OVERLAPPEDWINDOW.
+  ///
+  /// Defaults to off; pass via [WindowOptions.customFrame] to enable before
+  /// the window is first shown.
+  ///
+  /// @platforms windows
+  Future<void> setCustomFrame(bool isCustomFrame) async {
+    final Map<String, dynamic> arguments = {
+      'isCustomFrame': isCustomFrame,
+    };
+    await _channel.invokeMethod('setCustomFrame', arguments);
   }
 }
 
