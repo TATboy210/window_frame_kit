@@ -102,6 +102,11 @@ public class WindowManager: NSObject, NSWindowDelegate {
         }
     }
 
+    /// // FRAME: true while the decoration takeover is armed (0.3.0).
+    public func isCustomFrame() -> Bool {
+        return _savedStyleMask != nil
+    }
+
     /// // FRAME: custom frame takeover (04-03). Enables the
     /// fullSizeContentView + transparent-titlebar route while KEEPING the
     /// .titled styleMask bit, so the window stays key/main-capable (a hard

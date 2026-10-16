@@ -858,6 +858,10 @@ static void window_frame_kit_plugin_handle_method_call(
   } else if (g_strcmp0(method, "setCustomFrame") == 0) {
     // // FRAME: graft entry (04-03) - reversible decoration toggle.
     response = set_custom_frame(self, args);
+  } else if (g_strcmp0(method, "isCustomFrame") == 0) {
+    // // FRAME: live frame state for Dart (0.3.0).
+    g_autoptr(FlValue) result = fl_value_new_bool(self->_custom_frame_on);
+    response = FL_METHOD_RESPONSE(fl_method_success_response_new(result));
   } else if (g_strcmp0(method, "destroy") == 0) {
     response = destroy(self);
   } else if (g_strcmp0(method, "close") == 0) {

@@ -62,6 +62,10 @@ public class WindowFrameKitPlugin: NSObject, FlutterPlugin {
             windowManager.setCustomFrame(args)
             result(true)
             break
+        case "isCustomFrame":
+            // // FRAME: live frame state for Dart (0.3.0).
+            result(windowManager.isCustomFrame())
+            break
         case "destroy":
             windowManager.destroy()
             result(true)
