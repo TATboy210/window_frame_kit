@@ -5,7 +5,6 @@
 // (Linux CI: under `xvfb-run` with a window manager; without a WM the
 // maximize/fullscreen requests are not honoured by X11, see README).
 import 'dart:io';
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

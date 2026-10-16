@@ -169,7 +169,9 @@ detects the other plugin once and logs a warning; call
 
 ## Migrating from 0.2.x
 
-- Raise your Flutter constraint to 3.47 (screen_retriever 0.3.0).
+- Raise your Flutter constraint to 3.47 (screen_retriever 0.3.0, built on
+  nativeapi). Linux builds additionally need the X11 and Xi development
+  packages (`sudo apt-get install libgtk-3-dev libx11-dev libxi-dev`).
 - Windows `customFrame`: the 0.2.x non-client side bands and 1px top strip
   are gone (no Win10 accent line any more; the client is now the full
   window). If you padded your UI to compensate for the 0.2.x bands, remove

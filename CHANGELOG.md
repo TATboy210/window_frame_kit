@@ -12,6 +12,8 @@ project adheres to [Semantic Versioning](https://semver.org).
   `screen_retriever` was bumped to `^0.3.0` (nativeapi based). Window
   placement (`WindowOptions(center: true)`, `setAlignment`) now reads
   `DisplayManager` directly; results for named alignments are unchanged.
+  Linux builds now also need `libx11-dev` and `libxi-dev` (nativeapi
+  build hook, found via `pkg-config`).
 - **Windows `customFrame` redesign.** The whole window is client area
   again (0.2.x kept real non-client bands on the left/right/bottom and a
   1px strip on top). Consequences:

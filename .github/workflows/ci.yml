@@ -57,7 +57,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y clang cmake ninja-build pkg-config \
-            libgtk-3-dev xvfb xfwm4 dbus-x11
+            libgtk-3-dev libx11-dev libxi-dev xvfb xfwm4 dbus-x11
       - run: flutter pub get
       - run: flutter analyze --fatal-infos
       # Verbatim-ported files keep upstream formatting byte-for-byte; only
