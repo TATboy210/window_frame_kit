@@ -145,105 +145,21 @@ std::optional<LRESULT> WindowManagerPlugin::HandleWindowProc(HWND hWnd,
                                                              LPARAM lParam) {
   std::optional<LRESULT> result = std::nullopt;
 
-  // // FRAME: custom-frame takeover (03-03) - handled BEFORE the upstream
-  // branches so the graft owns NCCALCSIZE/NCHITTEST/GETMINMAXINFO while
-  // enabled; when disabled, every message falls through to upstream 0.5.2
-  // behavior unchanged.
+  // // FRAME: custom-frame takeover (0.3.0) - consulted BEFORE the upstream
+  // branches; geometry/hit-testing live in FrameController + the pure
+  // frame_geometry.h. Disabled -> every message falls through unchanged.
   if (frame_controller_ != nullptr && frame_controller_->IsEnabled()) {
-    switch (message) {
-      case WM_NCCALCSIZE: {
-        // Equal-width NC-band mapping (2026-09-05 redesign): the client
-        // shrinks by one DPI-scaled band on all four sides, so the band is
-        // REAL non-client area - DefWindowProc serves the native edge/
-        // corner resize hits (top edge included, fixing the upstream
-        // "hidden"-branch Win11 top-band-0 gap) while WS_CAPTION stays
-        // intact and DWM keeps the Win11 border + rounded corners.
-        // Fullscreen (dual-path) collapses the band to zero: no NC area, no
-        // resize. Maximized clamps to the work area so content neither
-        // crops nor covers the taskbar (nearest monitor per issue #489).
-        if (!wParam) {
-          break;
-        }
-        const bool fullscreen =
-            window_manager->IsFullScreen() ||
-            window_frame_kit::IsExternalFullscreenStyle(
-                GetWindowLongPtr(hWnd, GWL_STYLE));
-        if (fullscreen) {
-          return 0;
-        }
-        NCCALCSIZE_PARAMS* sz = reinterpret_cast<NCCALCSIZE_PARAMS*>(lParam);
-        if (::IsZoomed(hWnd)) {
-          HMONITOR monitor =
-              MonitorFromRect(&sz->rgrc[0], MONITOR_DEFAULTTONEAREST);
-          MONITORINFO mi = {};
-          mi.cbSize = sizeof(mi);
-          if (monitor != nullptr && GetMonitorInfo(monitor, &mi)) {
-            window_frame_kit::FrameAdjustNccalcSizeToWork(&sz->rgrc[0],
-                                                          mi.rcWork);
-          }
-        } else {
-          window_frame_kit::FrameApplyEdgeBands(
-              &sz->rgrc[0],
-              window_frame_kit::FrameEdgeWidthForWindow(hWnd));
-        }
-        return 0;
-      }
-      case WM_NCHITTEST: {
-        // Dual-path fullscreen guard: a fullscreen window must never report
-        // resize codes. Otherwise: left/right/bottom bands are real NC area
-        // (native, fall through untouched) and only the TOP edge needs the
-        // self-computed hit (its NC strip is 1px, too thin to grab).
-        const bool fullscreen =
-            window_manager->IsFullScreen() ||
-            window_frame_kit::IsExternalFullscreenStyle(
-                GetWindowLongPtr(hWnd, GWL_STYLE));
-        if (fullscreen) {
-          return window_manager->is_resizable_ ? HTCLIENT : HTNOWHERE;
-        }
-        const LONG y = window_frame_kit::FrameYFromLParam(lParam);
-        const LONG x = window_frame_kit::FrameXFromLParam(lParam);
-        RECT rect;
-        GetWindowRect(hWnd, &rect);
-        const auto top = window_frame_kit::FrameTopBandHitTest(
-            x, y, rect, window_frame_kit::FrameEdgeWidthForWindow(hWnd));
-        if (top.has_value()) {
-          return *top;
-        }
-        break;
-      }
-      case WM_GETMINMAXINFO: {
-        // Cooperative merge (DEVIATIONS #1): upstream min/max track sizes
-        // still apply; maximized additionally clamps to the work area
-        // instead of bitsdojo's unconstrained `return 0`.
-        MINMAXINFO* info = reinterpret_cast<MINMAXINFO*>(lParam);
-        RECT work = {};
-        HMONITOR monitor = MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST);
-        MONITORINFO mi = {};
-        mi.cbSize = sizeof(mi);
-        if (monitor != nullptr && GetMonitorInfo(monitor, &mi)) {
-          work = mi.rcWork;
-        }
-        window_frame_kit::FrameAdjustMinMaxInfo(
-            info, window_manager->minimum_size_.x,
-            window_manager->minimum_size_.y, window_manager->maximum_size_.x,
-            window_manager->maximum_size_.y, window_manager->pixel_ratio_,
-            work, ::IsZoomed(hWnd) != FALSE);
-        return 0;
-      }
-      case WM_SYSCOMMAND: {
-        // Fullscreen windows must not be resizable through the system menu
-        // either (SC_SIZE covers the Alt+Space "Size" path).
-        const bool fullscreen =
-            window_manager->IsFullScreen() ||
-            window_frame_kit::IsExternalFullscreenStyle(
-                GetWindowLongPtr(hWnd, GWL_STYLE));
-        if (fullscreen && (wParam & 0xFFF0) == SC_SIZE) {
-          return 0;
-        }
-        break;
-      }
-      default:
-        break;
+    if (message == WM_NCACTIVATE) {
+      _EmitEvent(wParam != 0 ? "focus" : "blur");
+      // lParam -1: DefWindowProc must not repaint the (empty) non-client
+      // area, which on Win10 flashes the themed caption over the client.
+      return DefWindowProc(hWnd, WM_NCACTIVATE, wParam, -1);
+    }
+    const std::optional<LRESULT> handled =
+        frame_controller_->HandleTopLevelMessage(hWnd, message, wParam,
+                                                 lParam);
+    if (handled.has_value()) {
+      return handled;
     }
   }
 
@@ -692,22 +608,22 @@ void WindowManagerPlugin::HandleMethodCall(
     window_manager->StartResizing(args);
     result->Success(flutter::EncodableValue(true));
   } else if (method_name.compare("setCustomFrame") == 0) {
-    // // FRAME: graft entry point (03-03) - arms/disarms the FrameController.
-    // State probes are live callbacks so setResizable/setFullScreen reflect
-    // immediately; only the top-level HWND is needed (bands are top-level
-    // NC area, no child subclass involved).
+    // // FRAME: graft entry point - arms/disarms the FrameController. The
+    // Flutter view HWND is hooked so resize-band hits reach the top level.
     const flutter::EncodableMap& args =
         std::get<flutter::EncodableMap>(*method_call.arguments());
     bool isCustomFrame = std::get<bool>(
         args.at(flutter::EncodableValue("isCustomFrame")));
     if (isCustomFrame) {
       const HWND root = window_manager->GetMainWindow();
+      flutter::FlutterView* view = registrar->GetView();
+      const HWND child = view != nullptr ? view->GetNativeWindow() : nullptr;
       if (frame_controller_ == nullptr) {
         frame_controller_ =
             std::make_unique<window_frame_kit::FrameController>();
       }
       const bool ok = frame_controller_->Enable(
-          root, [this]() { return window_manager->is_resizable_; },
+          root, child, [this]() { return window_manager->is_resizable_; },
           [this]() { return window_manager->IsFullScreen(); });
       result->Success(flutter::EncodableValue(ok));
     } else {
@@ -716,6 +632,11 @@ void WindowManagerPlugin::HandleMethodCall(
       }
       result->Success(flutter::EncodableValue(true));
     }
+  } else if (method_name.compare("isCustomFrame") == 0) {
+    // // FRAME: live frame state for Dart (0.3.0).
+    const bool on =
+        frame_controller_ != nullptr && frame_controller_->IsEnabled();
+    result->Success(flutter::EncodableValue(on));
   } else {
     result->NotImplemented();
   }
