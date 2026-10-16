@@ -1,0 +1,53 @@
+name: Bug report
+description: Something in the frame or window API does not behave as documented.
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: window_frame_kit version
+      placeholder: 0.3.0
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Windows 10
+        - Windows 11
+        - macOS
+        - Linux (X11)
+        - Linux (Wayland)
+    validations:
+      required: true
+  - type: input
+    id: os-build
+    attributes:
+      label: OS build / distribution
+      placeholder: "Windows 10 22H2 (19045), accent color on title bars: on"
+  - type: textarea
+    id: flutter
+    attributes:
+      label: flutter --version
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: WindowOptions / calls used, display scaling and monitor layout.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected vs actual
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: ResizeDiagnostics output (resize issues only)
+      render: text
