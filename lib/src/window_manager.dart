@@ -102,7 +102,39 @@ class WindowManager {
 
   Future<void> ensureInitialized() async {
     await _channel.invokeMethod('ensureInitialized');
+    // // FRAME: coexistence guard (0.3.0) - warn once if the original
+    // window_manager plugin is also registered in this app.
+    if (!_conflictChecked) {
+      _conflictChecked = true;
+      if (await detectWindowManagerConflict()) {
+        debugPrint(kWindowManagerConflictWarning);
+      }
+    }
   }
+
+  bool _conflictChecked = false;
+
+  /// Returns `true` when the original `window_manager` plugin is registered
+  /// next to window_frame_kit (its `window_manager` channel answers).
+  ///
+  /// Both packages install a top-level WindowProc delegate and both answer
+  /// WM_NCCALCSIZE / WM_NCHITTEST, so running them together makes the frame
+  /// depend on plugin registration order. [ensureInitialized] calls this
+  /// once and logs [kWindowManagerConflictWarning] when it returns `true`.
+  Future<bool> detectWindowManagerConflict() async {
+    try {
+      await _foreignWindowManagerChannel.invokeMethod<Object?>('isVisible');
+      return true;
+    } on MissingPluginException {
+      return false;
+    } on PlatformException {
+      // The foreign plugin exists but rejected the probe: still a conflict.
+      return true;
+    }
+  }
+
+  final MethodChannel _foreignWindowManagerChannel =
+      const MethodChannel('window_manager');
 
   /// Returns `int` - The ID of the window.
   ///
@@ -768,24 +800,40 @@ class WindowManager {
 
   /// // FRAME: Enables or disables the native custom frame takeover.
   ///
-  /// When enabled, the plugin's FrameController handles the window frame
-  /// natively: borderless WM_NCCALCSIZE (no themed border, no Win11 8px top
-  /// inset), 4-edge/4-corner DPI-aware WM_NCHITTEST resizing, and cooperative
-  /// WM_GETMINMAXINFO (minimumSize/maximumSize stay effective, maximized
-  /// window clamps to the monitor work area). Resizing is force-disabled in
-  /// fullscreen, covering both the plugin's own fullscreen state and an
-  /// external fullscreen path that strips WS_OVERLAPPEDWINDOW.
+  /// Windows: the whole window becomes client area (no system frame on any
+  /// edge, so Windows 10 draws no accent border), Windows 11 keeps its DWM
+  /// rounded corners and 1px border, and all four edges and corners resize
+  /// with the same DPI-aware thickness. Maximized windows fill the monitor
+  /// work area (1px kept free on auto-hide taskbar edges); maximized and
+  /// fullscreen windows never resize. Linux: GTK decorations off. macOS:
+  /// full-size content view with a transparent, hidden title bar.
   ///
   /// Defaults to off; pass via [WindowOptions.customFrame] to enable before
   /// the window is first shown.
   ///
-  /// @platforms windows
+  /// @platforms windows,linux,macos
   Future<void> setCustomFrame(bool isCustomFrame) async {
     final Map<String, dynamic> arguments = {
       'isCustomFrame': isCustomFrame,
     };
     await _channel.invokeMethod('setCustomFrame', arguments);
   }
+
+  /// Returns `true` while the custom frame takeover is active.
+  ///
+  /// @platforms windows,linux,macos
+  Future<bool> isCustomFrame() async {
+    return await _channel.invokeMethod<bool>('isCustomFrame') ?? false;
+  }
 }
+
+/// Logged by [WindowManager.ensureInitialized] when the original
+/// `window_manager` plugin is registered in the same app.
+const String kWindowManagerConflictWarning =
+    'window_frame_kit: the `window_manager` plugin is also registered. Both '
+    'plugins handle the same native window messages (WM_NCCALCSIZE, '
+    'WM_NCHITTEST, ...), so the frame becomes registration-order dependent. '
+    'Remove `window_manager` from pubspec.yaml - window_frame_kit exposes the '
+    'same `windowManager` API.';
 
 final windowManager = WindowManager.instance;

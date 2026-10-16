@@ -70,10 +70,7 @@ DisplayArea _toArea(Display display) {
 }
 
 /// Window origin for [alignment] on the display under the cursor.
-Future<Offset> calcWindowPosition(
-  Size windowSize,
-  Alignment alignment,
-) async {
+Future<Offset> calcWindowPosition(Size windowSize, Alignment alignment) async {
   const manager = DisplayManager.instance;
   final displays = manager.getAll().map(_toArea).toList(growable: false);
   final cursor = manager.getCursorPosition().toOffset();
