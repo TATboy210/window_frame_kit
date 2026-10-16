@@ -637,6 +637,37 @@ void WindowManagerPlugin::HandleMethodCall(
     const bool on =
         frame_controller_ != nullptr && frame_controller_->IsEnabled();
     result->Success(flutter::EncodableValue(on));
+  } else if (method_name.compare("takeResizeSyncStats") == 0 ||
+             method_name.compare("debugResizeSweep") == 0) {
+    // // FRAME: resize synchronization telemetry (0.3.0). Null when the
+    // custom frame is off (the view hook only exists while it is on).
+    if (frame_controller_ == nullptr || !frame_controller_->IsEnabled()) {
+      result->Success();
+      return;
+    }
+    window_frame_kit::ResizeSyncStats stats;
+    if (method_name.compare("takeResizeSyncStats") == 0) {
+      stats = frame_controller_->TakeResizeSyncStats();
+    } else {
+      const flutter::EncodableMap& args =
+          std::get<flutter::EncodableMap>(*method_call.arguments());
+      const int steps =
+          std::get<int>(args.at(flutter::EncodableValue("steps")));
+      const bool preSync =
+          std::get<bool>(args.at(flutter::EncodableValue("preSync")));
+      stats = frame_controller_->RunResizeSweep(steps, preSync);
+    }
+    flutter::EncodableMap map;
+    map[flutter::EncodableValue("steps")] = flutter::EncodableValue(stats.steps);
+    map[flutter::EncodableValue("syncTimeouts")] =
+        flutter::EncodableValue(stats.syncTimeouts);
+    map[flutter::EncodableValue("staleComposedFrames")] =
+        flutter::EncodableValue(static_cast<int64_t>(stats.staleComposedFrames));
+    map[flutter::EncodableValue("mismatchMs")] =
+        flutter::EncodableValue(stats.mismatchMs);
+    map[flutter::EncodableValue("maxSyncWaitMs")] =
+        flutter::EncodableValue(stats.maxSyncWaitMs);
+    result->Success(flutter::EncodableValue(map));
   } else {
     result->NotImplemented();
   }
