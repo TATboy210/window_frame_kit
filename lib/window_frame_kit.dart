@@ -1,4 +1,5 @@
 export 'src/diagnostics/resize_diagnostics.dart';
+export 'src/diagnostics/resize_sync_stats.dart';
 export 'src/resize_edge.dart';
 export 'src/title_bar_style.dart';
 export 'src/utils/calc_window_position.dart';

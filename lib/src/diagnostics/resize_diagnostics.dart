@@ -10,6 +10,8 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
+import 'package:window_frame_kit/src/diagnostics/resize_sync_stats.dart';
 import 'package:window_frame_kit/src/window_listener.dart';
 import 'package:window_frame_kit/src/window_manager.dart';
 
@@ -48,12 +50,18 @@ class ResizeFrameSample {
   }
 }
 
-/// Aggregate of a diagnostics session.
+/// Aggregate of one resize gesture (or of a recorder window).
 @immutable
 class ResizeDiagnosticsReport {
-  const ResizeDiagnosticsReport(this.samples);
+  const ResizeDiagnosticsReport(this.samples, {this.native});
 
   final List<ResizeFrameSample> samples;
+
+  /// Native resize-sync telemetry for the same gesture (Windows with
+  /// `customFrame` only). This is the authoritative stale-frame measurement;
+  /// the Dart-side [mismatchedFrames] compares asynchronously sampled sizes
+  /// and is only a coarse indicator.
+  final ResizeSyncStats? native;
 
   int get frameCount => samples.length;
 
@@ -80,12 +88,15 @@ class ResizeDiagnosticsReport {
   @override
   String toString() {
     String ms(Duration d) => (d.inMicroseconds / 1000).toStringAsFixed(1);
-    return 'ResizeDiagnostics: $frameCount frames, '
-        '$mismatchedFrames mismatched '
-        '(${(mismatchRatio * 100).toStringAsFixed(1)}%), '
+    final dart =
+        'ResizeDiagnostics: $frameCount frames, '
+        '$mismatchedFrames size-sample mismatches '
+        '(${(mismatchRatio * 100).toStringAsFixed(1)}%, approximate), '
         'frame time p50 ${ms(percentileFrameTime(50))} ms / '
         'p95 ${ms(percentileFrameTime(95))} ms / '
         'max ${ms(maxFrameTime)} ms';
+    final nativeStats = native;
+    return nativeStats == null ? dart : '$dart | $nativeStats';
   }
 }
 
@@ -106,7 +117,16 @@ class ResizeDiagnosticsRecorder {
 
   bool get isResizing => _resizing;
 
-  void beginResize() => _resizing = true;
+  /// Starts a gesture. A begin while already resizing continues the same
+  /// gesture; a begin after [endResize] starts a fresh one, so every
+  /// gesture is reported on its own (not cumulatively).
+  void beginResize() {
+    if (_resizing) {
+      return;
+    }
+    _samples.clear();
+    _resizing = true;
+  }
 
   void endResize() => _resizing = false;
 
@@ -132,8 +152,9 @@ class ResizeDiagnosticsRecorder {
     }
   }
 
-  ResizeDiagnosticsReport report() =>
-      ResizeDiagnosticsReport(List.unmodifiable(_samples));
+  /// Report of the current (or last finished) gesture.
+  ResizeDiagnosticsReport report({ResizeSyncStats? native}) =>
+      ResizeDiagnosticsReport(List.unmodifiable(_samples), native: native);
 
   void clear() => _samples.clear();
 }
@@ -147,11 +168,13 @@ class ResizeDiagnosticsRecorder {
 /// ```
 ///
 /// While started it listens to window resize events and to
-/// [SchedulerBinding.addTimingsCallback]. Each frame rendered during an
-/// interactive resize is compared against the most recent native window
-/// size. Frames are delivered in batches by the engine, so attribution to a
-/// window size is approximate by up to one batch (~100 ms); use the
-/// mismatch ratio as a trend, not an exact count. Does nothing in release
+/// [SchedulerBinding.addTimingsCallback] and reports each resize gesture
+/// separately through [onReport]. On Windows with `customFrame` the report
+/// carries [ResizeDiagnosticsReport.native]: exact engine resize-wait and
+/// stale-composition counts measured in the native view hook - use those
+/// to judge tearing. The Dart-side size comparison only relates
+/// asynchronously sampled sizes (frame timings arrive in batches of up to
+/// ~100 ms), so it over-reports during fast drags. Does nothing in release
 /// builds.
 ///
 /// The comparison is meaningful when the Flutter surface covers the whole
@@ -169,7 +192,7 @@ class ResizeDiagnostics with WindowListener {
   final WindowManager _manager;
   final ResizeDiagnosticsRecorder _recorder;
 
-  /// Called with the session report each time a resize gesture ends.
+  /// Called with that gesture's report each time a resize gesture ends.
   final void Function(ResizeDiagnosticsReport report)? onReport;
 
   bool _running = false;
@@ -187,7 +210,7 @@ class ResizeDiagnostics with WindowListener {
     SchedulerBinding.instance.addTimingsCallback(_onTimings);
   }
 
-  /// Stops collecting and returns everything recorded so far.
+  /// Stops collecting and returns the current or last gesture's report.
   ResizeDiagnosticsReport stop() {
     if (_running) {
       _running = false;
@@ -223,6 +246,10 @@ class ResizeDiagnostics with WindowListener {
 
   @override
   void onWindowResize() {
+    if (!_recorder.isResizing) {
+      // New gesture: discard native telemetry gathered before it.
+      unawaited(_takeNative());
+    }
     _recorder.beginResize();
     unawaited(_refreshWindowSize());
   }
@@ -230,6 +257,22 @@ class ResizeDiagnostics with WindowListener {
   @override
   void onWindowResized() {
     _recorder.endResize();
-    onReport?.call(_recorder.report());
+    unawaited(_finishGesture());
+  }
+
+  Future<ResizeSyncStats?> _takeNative() async {
+    try {
+      return await _manager.takeResizeSyncStats();
+    } on PlatformException catch (error) {
+      debugPrint('ResizeDiagnostics: native stats unavailable: $error');
+      return null;
+    } on MissingPluginException {
+      return null;
+    }
+  }
+
+  Future<void> _finishGesture() async {
+    final native = await _takeNative();
+    onReport?.call(_recorder.report(native: native));
   }
 }

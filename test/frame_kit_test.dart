@@ -1,5 +1,7 @@
 // 0.3.0 new-code tests: isCustomFrame channel, window_manager coexistence
 // detection, display placement math, and the resize diagnostics recorder.
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -113,6 +115,107 @@ void main() {
         alignWindowInWorkArea(size, Alignment.centerLeft, work),
         const Offset(100, 50 + 220),
       );
+    });
+  });
+
+  group('per-gesture reporting', () {
+    test('each gesture starts a fresh window (not cumulative)', () {
+      final recorder = ResizeDiagnosticsRecorder()
+        ..beginResize()
+        ..recordFrame(Duration.zero, const Size(1, 1))
+        ..recordFrame(Duration.zero, const Size(1, 1))
+        ..endResize();
+      expect(recorder.report().frameCount, 2);
+      recorder
+        ..beginResize()
+        ..recordFrame(Duration.zero, const Size(1, 1));
+      expect(recorder.report().frameCount, 1);
+      // begin while resizing continues the same gesture
+      recorder
+        ..beginResize()
+        ..recordFrame(Duration.zero, const Size(1, 1))
+        ..endResize();
+      expect(recorder.report().frameCount, 2);
+    });
+
+    test('ResizeDiagnostics reports each gesture with native stats', () async {
+      var takes = 0;
+      messenger.setMockMethodCallHandler(channel, (call) async {
+        if (call.method == 'takeResizeSyncStats') {
+          takes++;
+          return {
+            'steps': 10 * takes,
+            'syncTimeouts': 0,
+            'staleComposedFrames': takes,
+            'mismatchMs': 1.5,
+            'maxSyncWaitMs': 7.0,
+          };
+        }
+        if (call.method == 'getBounds') {
+          return {'x': 0.0, 'y': 0.0, 'width': 800.0, 'height': 600.0};
+        }
+        return null;
+      });
+      final reports = <ResizeDiagnosticsReport>[];
+      final diagnostics = ResizeDiagnostics(onReport: reports.add)..start();
+      for (var gesture = 0; gesture < 2; gesture++) {
+        diagnostics.onWindowResize();
+        diagnostics.onWindowResize();
+        diagnostics.onWindowResized();
+        await pumpEventQueue();
+      }
+      diagnostics.stop();
+      expect(reports, hasLength(2));
+      if (Platform.isWindows) {
+        // begin-of-gesture take resets, end-of-gesture take reports.
+        expect(reports[0].native?.steps, 20);
+        expect(reports[1].native?.steps, 40);
+        expect(reports[1].toString(), contains('native:'));
+      } else {
+        expect(reports[0].native, isNull);
+      }
+    });
+  });
+
+  group('ResizeSyncStats', () {
+    test('parses the channel map and rejects other values', () {
+      final stats = ResizeSyncStats.fromMap({
+        'steps': 200,
+        'syncTimeouts': 1,
+        'staleComposedFrames': 50,
+        'mismatchMs': 812.5,
+        'maxSyncWaitMs': 101.0,
+      });
+      expect(stats?.steps, 200);
+      expect(stats?.staleFramesPerStep, 0.25);
+      expect(stats.toString(), contains('1 engine timeouts'));
+      expect(ResizeSyncStats.fromMap(null), isNull);
+      expect(ResizeSyncStats.fromMap({})?.staleFramesPerStep, 0);
+    });
+
+    test('takeResizeSyncStats / debugResizeSweep use the channel', () async {
+      final calls = <MethodCall>[];
+      messenger.setMockMethodCallHandler(channel, (call) async {
+        calls.add(call);
+        return {'steps': 3};
+      });
+      final taken = await windowManager.takeResizeSyncStats();
+      final swept = await windowManager.debugResizeSweep(
+        steps: 3,
+        preSync: false,
+      );
+      if (Platform.isWindows) {
+        expect(taken?.steps, 3);
+        expect(swept?.steps, 3);
+        expect(calls.map((c) => c.method), [
+          'takeResizeSyncStats',
+          'debugResizeSweep',
+        ]);
+        expect(calls[1].arguments, {'steps': 3, 'preSync': false});
+      } else {
+        expect(taken, isNull);
+        expect(calls, isEmpty);
+      }
     });
   });
 

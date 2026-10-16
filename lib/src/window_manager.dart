@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as path;
+import 'package:window_frame_kit/src/diagnostics/resize_sync_stats.dart';
 import 'package:window_frame_kit/src/resize_edge.dart';
 import 'package:window_frame_kit/src/title_bar_style.dart';
 import 'package:window_frame_kit/src/utils/calc_window_position.dart';
@@ -824,6 +825,40 @@ class WindowManager {
   /// @platforms windows,linux,macos
   Future<bool> isCustomFrame() async {
     return await _channel.invokeMethod<bool>('isCustomFrame') ?? false;
+  }
+
+  /// Returns and resets the native resize synchronization telemetry
+  /// collected since the previous call, or null when unavailable (custom
+  /// frame off, or not Windows).
+  ///
+  /// @platforms windows
+  Future<ResizeSyncStats?> takeResizeSyncStats() async {
+    if (!Platform.isWindows) {
+      return null;
+    }
+    return ResizeSyncStats.fromMap(
+      await _channel.invokeMethod<Object?>('takeResizeSyncStats'),
+    );
+  }
+
+  /// Measurement harness: performs [steps] back-to-back native window resizes
+  /// (alternating all four edges, no input simulation) with the view
+  /// pre-sync on or off, restores the window, and returns the telemetry.
+  ///
+  /// @platforms windows
+  Future<ResizeSyncStats?> debugResizeSweep({
+    int steps = 200,
+    bool preSync = true,
+  }) async {
+    if (!Platform.isWindows) {
+      return null;
+    }
+    return ResizeSyncStats.fromMap(
+      await _channel.invokeMethod<Object?>('debugResizeSweep', {
+        'steps': steps,
+        'preSync': preSync,
+      }),
+    );
   }
 }
 
