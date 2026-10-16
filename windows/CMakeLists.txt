@@ -116,5 +116,9 @@ add_custom_command(TARGET ${TEST_RUNNER} POST_BUILD
 
 # Enable automatic test discovery.
 include(GoogleTest)
-gtest_discover_tests(${TEST_RUNNER})
+# PRE_TEST: enumerate tests when ctest runs, not as a POST_BUILD step. The
+# POST_BUILD default launches the test exe with a 5s timeout during every
+# `flutter build`/`flutter test -d windows`, which flakes on cold CI runners
+# and fails the whole app build.
+gtest_discover_tests(${TEST_RUNNER} DISCOVERY_MODE PRE_TEST)
 endif()

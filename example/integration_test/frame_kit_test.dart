@@ -89,23 +89,33 @@ Future<void> main() async {
     skip: Platform.isLinux && Platform.environment['WFK_HAS_WM'] != '1',
   );
 
-  testWidgets('fullscreen enter / leave', (tester) async {
-    await windowManager.setFullScreen(true);
-    expect(
-      await _eventually(
-        windowManager.isFullScreen,
-        timeout: const Duration(seconds: 10),
-      ),
-      isTrue,
-    );
-    await windowManager.setFullScreen(false);
-    expect(
-      await _eventually(windowManager.isFullScreen, expected: false),
-      isTrue,
-    );
-    // The frame survives the round trip.
-    expect(await windowManager.isCustomFrame(), isTrue);
-  }, skip: Platform.isLinux && Platform.environment['WFK_HAS_WM'] != '1');
+  testWidgets(
+    'fullscreen enter / leave',
+    (tester) async {
+      await windowManager.setFullScreen(true);
+      expect(
+        await _eventually(
+          windowManager.isFullScreen,
+          timeout: const Duration(seconds: 10),
+        ),
+        isTrue,
+      );
+      await windowManager.setFullScreen(false);
+      expect(
+        await _eventually(windowManager.isFullScreen, expected: false),
+        isTrue,
+      );
+      // The frame survives the round trip.
+      expect(await windowManager.isCustomFrame(), isTrue);
+    },
+    // Linux: needs a window manager (WFK_HAS_WM). macOS: native fullscreen
+    // needs a foreground app in its own Space, which a non-interactive CI
+    // session cannot provide (WFK_SKIP_MACOS_FULLSCREEN=1 in ci.yml).
+    skip:
+        (Platform.isLinux && Platform.environment['WFK_HAS_WM'] != '1') ||
+        (Platform.isMacOS &&
+            Platform.environment['WFK_SKIP_MACOS_FULLSCREEN'] == '1'),
+  );
 
   testWidgets('programmatic resize sweep: surface follows the window', (
     tester,
