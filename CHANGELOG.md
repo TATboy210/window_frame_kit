@@ -41,15 +41,22 @@ project adheres to [Semantic Versioning](https://semver.org).
 - Maximized windows fill the monitor work area exactly; on monitors with an
   auto-hide taskbar 1px is left free on that edge so the taskbar can still
   be revealed (Windows Terminal / Chromium recipe).
-- Smoother interactive resize: `WM_ERASEBKGND` swallowed, `WVR_REDRAW`
-  during size-move (no stale-pixel BitBlt), no non-client repaint on
-  activation changes.
+- **No stale/stretched frames during fast edge dragging** (Windows): the
+  Flutter view is resized and rendered at its new size *before* the window
+  geometry changes (pre-sync on `WM_WINDOWPOSCHANGING`), instead of after
+  it as with the stock runner + engine. Programmatic sweep: stale composed
+  frames per resize step 0.9-1.4 -> 0.10-0.14 (README, "Resize
+  synchronization"). Also `WM_ERASEBKGND` swallowed, `SWP_NOCOPYBITS`
+  during size-move, no non-client repaint on activation changes.
+- `ResizeSyncStats`, `windowManager.takeResizeSyncStats()` and
+  `windowManager.debugResizeSweep()` (Windows) for measuring it.
 - `windowManager.isCustomFrame()` (all platforms).
 - `windowManager.detectWindowManagerConflict()`; `ensureInitialized()`
   logs a warning once when the original `window_manager` plugin is also
   registered.
-- `ResizeDiagnostics` (debug/profile, opt-in): frame times and
-  surface-vs-window size mismatches during interactive resize.
+- `ResizeDiagnostics` (debug/profile, opt-in): one report per resize
+  gesture with frame times, Dart-side size samples and (Windows) the native
+  `ResizeSyncStats`.
 - Native gtest suite for the pure frame geometry
   (`windows/frame_geometry.h`): Win10/Win11 policy, normal / maximized /
   fullscreen, DPI 96-192, edges vs corners.
@@ -58,7 +65,16 @@ project adheres to [Semantic Versioning](https://semver.org).
 - CI: windows-11-arm, macos-15-intel, Flutter beta early-warning job;
   tag-triggered pub.dev publishing via OIDC; SECURITY.md, issue templates.
 
+### Fixed
+
+- Windows: a maximized window constrained by `setMaximumSize` no longer
+  gets a client area larger than the window.
+
 ### Known limitations
+
+- Windows: `WS_CAPTION` is removed while the frame is on, so the system
+  minimize/restore animation is not played (the window still minimizes,
+  restores, snaps and maximizes normally).
 
 - Windows 11 snap layouts flyout on a self-drawn maximize button is not
   provided (needs `HTMAXBUTTON` hit-testing over a Dart-drawn button);

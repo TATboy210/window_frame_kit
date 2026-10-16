@@ -91,9 +91,9 @@ window):
   No resize bands.
 - Fullscreen (the plugin's own or an external one that strips
   `WS_OVERLAPPEDWINDOW`): no frame, no bands, `SC_SIZE` blocked.
-- Interactive resize: `WM_ERASEBKGND` is swallowed and `WM_NCCALCSIZE`
-  returns `WVR_REDRAW` during a size-move so stale client pixels are not
-  blitted to the new origin; activation changes do not repaint the
+- Interactive resize (no stale/stretched frames): see
+  [Resize synchronization](#resize-synchronization-windows) below.
+  `WM_ERASEBKGND` is swallowed and activation changes do not repaint the
   non-client area.
 
 Windows 11 *snap layouts* (the flyout on hovering a maximize button) are
@@ -121,28 +121,65 @@ same `resizeEdgeSize` on all four sides.
   themselves — `setPosition`, `setAlignment` and `center` are ignored by
   the compositor. Shadows and rounded corners are compositor policy.
 
+### Resize synchronization (Windows)
+
+Why a plain Flutter window shows stale or stretched frames while an edge is
+dragged fast (engine `shell/platform/windows`, Flutter 3.47): the engine
+learns a new view size only from the FLUTTERVIEW child's `WM_SIZE`
+(`flutter_window.cc` → `FlutterWindowsView::OnWindowSizeChanged`). The
+runner sends that `WM_SIZE` by `MoveWindow`-ing the child from the
+top-level `WM_SIZE` (`win32_window.cpp`), i.e. *after* both windows already
+have the new size. The engine then blocks until a frame of the new size is
+presented (`resize_status_` kResizeStarted → kFrameGenerated → kDone,
+`kWindowResizeTimeout` = 100 ms). For that whole wait the view's swap chain
+(`EGL_FIXED_SIZE_ANGLE`, `egl/manager.cc`) still holds the old-size buffer
+and DWM composes it stretched to the new window size; during a fast drag
+this happens on nearly every step.
+
+With `customFrame` the plugin pre-syncs the view during interactive
+resizing: on the top-level `WM_WINDOWPOSCHANGING` (before any geometry
+changes) the view receives `WM_SIZE` with the size it is about to get, the
+engine renders and presents that frame (and `DwmFlush`es), then the plugin
+resizes the view and lets the system commit the window geometry. The later
+host `WM_SIZE` carries the same size, so the engine does not block again.
+Programmatic `setSize`/`setBounds` are unchanged.
+
+Measured with `windowManager.debugResizeSweep()` (200 back-to-back
+`SetWindowPos` steps alternating all four edges, including left/top
+origin moves; profile build, Windows 11, RTX 4060 laptop, 3 runs each):
+
+| | stale composed frames / step | view/surface mismatch |
+|---|---|---|
+| engine default | 0.89 – 1.43 | 1.49 – 1.66 s per 200 steps |
+| window_frame_kit pre-sync | 0.10 – 0.14 | 78 – 85 ms per 200 steps |
+
 ## Resize diagnostics
 
 `ResizeDiagnostics` (debug/profile builds; no-op in release) measures
-interactive resizing instead of eyeballing it: for every frame rendered
-during a resize it records the frame time and whether the rendered surface
-size matched the native window size.
+interactive resizing instead of eyeballing it and reports **each resize
+gesture separately**. On Windows with `customFrame` every report carries
+native telemetry from the view hook (`ResizeSyncStats`: engine resize
+waits, timeouts, view/surface mismatch time and the estimated number of
+stale frames DWM composed, counted against `DwmGetCompositionTimingInfo`).
+That native part is the number to judge tearing by. The Dart part records
+frame times and compares the rendered surface with asynchronously sampled
+window sizes, which over-reports during fast drags.
 
 ```dart
 final diagnostics = ResizeDiagnostics(
   onReport: (report) => debugPrint(report.toString()),
 )..start();
 // drag a window edge; each finished gesture prints e.g.
-// ResizeDiagnostics: 212 frames, 3 mismatched (1.4%),
-//   frame time p50 4.1 ms / p95 9.8 ms / max 21.3 ms
+// ResizeDiagnostics: 212 frames, ... | native: 94 steps,
+//   9 stale composed frames (0.10/step), 0 engine timeouts, ...
 diagnostics.stop();
 ```
 
-A mismatch means a frame was presented at the previous window size
-(stretched or clipped content). Frame timings arrive in engine batches, so
-treat the ratio as a trend. Compare only with `customFrame` or a hidden
-title bar (otherwise the surface is smaller than the window by design).
-`ResizeDiagnosticsRecorder` exposes the same logic for custom sources.
+`windowManager.takeResizeSyncStats()` returns the native counters
+directly, and `windowManager.debugResizeSweep(steps:, preSync:)` runs the
+programmatic sweep above in your own app (no input simulation) so you can
+compare the engine default against the pre-sync on your hardware.
+`ResizeDiagnosticsRecorder` exposes the Dart-side logic for custom sources.
 
 ## Coexistence with window_manager
 
