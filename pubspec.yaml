@@ -29,7 +29,7 @@ dependencies:
     sdk: flutter
   # 依赖白名单（XPLAT-02 骨架期生效条款）：直接依赖仅以下两项，任何 win32 出现即违规
   path: ^1.9.1
-  screen_retriever: ^0.2.2
+  screen_retriever: ^0.3.0
 
 dev_dependencies:
   flutter_test:

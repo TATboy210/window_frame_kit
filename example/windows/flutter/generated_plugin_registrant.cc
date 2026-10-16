@@ -6,12 +6,9 @@
 
 #include "generated_plugin_registrant.h"
 
-#include <screen_retriever_windows/screen_retriever_windows_plugin_c_api.h>
 #include <window_frame_kit/window_frame_kit_plugin_c_api.h>
 
 void RegisterPlugins(flutter::PluginRegistry* registry) {
-  ScreenRetrieverWindowsPluginCApiRegisterWithRegistrar(
-      registry->GetRegistrarForPlugin("ScreenRetrieverWindowsPluginCApi"));
   WindowFrameKitPluginCApiRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("WindowFrameKitPluginCApi"));
 }
