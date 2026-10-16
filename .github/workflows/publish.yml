@@ -1,0 +1,38 @@
+# Publishes to pub.dev when a version tag (v1.2.3) is pushed, using GitHub
+# OIDC - no long-lived pub credentials are stored in this repository.
+#
+# One-time setup on pub.dev (package admin page -> Automated publishing):
+# enable "Publishing from GitHub Actions", repository
+# TATboy210/window_frame_kit, tag pattern `v{{version}}`, and (recommended)
+# require the `pub.dev` GitHub environment.
+# Maintainers push the tag; CI never creates tags.
+#
+# Why not `uses: dart-lang/setup-dart/.github/workflows/publish.yml@v1`
+# directly: that reusable workflow installs only the Dart SDK, and a Flutter
+# plugin cannot be validated/published without the Flutter SDK. This job is
+# the same recipe (setup-dart configures the OIDC token exchange for pub.dev,
+# then `dart pub publish --force`) with Flutter added.
+name: publish
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+*"
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: pub.dev
+    permissions:
+      id-token: write # OIDC token for pub.dev
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dart-lang/setup-dart@v1
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: "3.47.6"
+      - run: flutter pub get
+      - run: dart pub publish --dry-run
+      - run: dart pub publish --force

@@ -1,9 +1,14 @@
-# CI 骨架期工作流（D-05~D-08 载体）
-# - D-05：三平台全量矩阵并行（windows/ubuntu/macos runner）
-# - D-06：触发 = push 到 master + 所有 PR（pull_request 不限分支）
-# - D-07：每平台四项检查 ① analyze+format ② test ③ pana（独立 ubuntu job）④ native build
-# - D-08：pana 用 --exit-code-threshold 设通过线（非满分级）
-# 明确不含：publish 步骤、任何 secrets 引用、melos/第三方 pana 包装 action（研究 SotA 弃用清单）。
+# window_frame_kit CI (0.3.0).
+# - checks: analyze + format + unit tests + native build + native gtest +
+#   integration test on every desktop host that GitHub offers.
+# - ubuntu-24.04-arm is intentionally absent: Flutter stable publishes no
+#   Linux arm64 host SDK, so `flutter` cannot run there (README, "CI
+#   coverage"). Linux arm64 apps still build from this source with a
+#   self-provisioned SDK; that path is not verified by CI.
+# - windows-11-arm runs the x64 SDK under emulation: analyze/test only, the
+#   Windows arm64 desktop target is still experimental in Flutter.
+# - beta: early warning for engine Windows-window changes, never blocking.
+# No publish step and no secrets here; see publish.yml (tag-triggered OIDC).
 name: ci
 
 on:
@@ -13,72 +18,126 @@ on:
 
 jobs:
   checks:
+    name: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        include:
+          - os: windows-latest
+            platform: windows
+            flutter-arch: x64
+            build: true
+          - os: windows-11-arm
+            platform: windows
+            flutter-arch: x64
+            build: false
+          - os: macos-latest # arm64
+            platform: macos
+            flutter-arch: arm64
+            build: true
+          - os: macos-15-intel
+            platform: macos
+            flutter-arch: x64
+            build: true
+          - os: ubuntu-latest
+            platform: linux
+            flutter-arch: x64
+            build: true
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
-          flutter-version: "3.47.2" # 钉版本保证可复现（与本机验证环境一致）
+          flutter-version: "3.47.6"
+          architecture: ${{ matrix.flutter-arch }}
           cache: true
+      - name: Install Linux toolchain
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config \
+            libgtk-3-dev xvfb xfwm4 dbus-x11
       - run: flutter pub get
-      - run: flutter analyze
-      # format 门双轨化（02-RESEARCH Pitfall 1）：逐字区文件字节=上游 window_manager 0.5.2
-      # （本包 LV3.13 tall-style 与上游 short-style 结构性冲突），豁免格式化；
-      # 正名单只查新码区文件。逐字性由下方 verbatim-diff 步持续守护。
-      - run: >-
+      - run: flutter analyze --fatal-infos
+      # Verbatim-ported files keep upstream formatting byte-for-byte; only
+      # files owned by this package are format-gated.
+      - name: Format (package-owned files)
+        run: >-
           dart format --set-exit-if-changed --output=none
+          lib/src/diagnostics
+          lib/src/utils/calc_window_position.dart
           test/channel_contract_test.dart
+          test/frame_kit_test.dart
           example/lib/utils/window_event_logger.dart
           example/lib/utils/mouse_passthrough_recovery.dart
-          example/test/mouse_passthrough_recovery_test.dart
-          example/test/custom_frame_toggle_test.dart
-      - run: flutter test
-      - name: Example recovery tests
+          example/test
+          example/integration_test/frame_kit_test.dart
+      - run: flutter test --timeout 90s
+      - name: Example widget tests
         working-directory: example
-        run: flutter test test/mouse_passthrough_recovery_test.dart
-      - name: Example custom-frame widget tests
-        working-directory: example
-        run: flutter test test/custom_frame_toggle_test.dart
-      # SC5 机器门（02-RESEARCH Open Q3 定案进 CI）：curl 官方 pub.dev archive 为对照源，
-      # 16 个 Dart 文件零差；无托盘 home.dart 用固定摘要守护授权偏差，禁止静默放宽。
-      - name: Verbatim diff vs upstream window_manager 0.5.2 (ubuntu)
+        run: flutter test --timeout 90s test
+      - name: Verbatim diff vs upstream window_manager 0.5.2
         if: matrix.os == 'ubuntu-latest'
         run: |
           mkdir -p /tmp/wm052
           curl -sL https://pub.dev/api/archives/window_manager-0.5.2.tar.gz | tar xz -C /tmp/wm052
           bash tool/verbatim_diff.sh /tmp/wm052
-      # ④ native build：插件根的 windows/linux/ 是 library-only CMake 壳、macos/ 是 podspec，
-      # 不能作为独立应用构建——编译宿主是 example/（上游 window_manager build.yml 同款
-      # working-directory 做法）。Pitfall 3 CI 变体预防：全新 configure 可能不生成
-      # example/build/native_assets/windows，INSTALL 步骤会因目录缺失报错，先 mkdir 兜底。
-      - name: Pre-create native_assets dir (windows, Pitfall 3)
-        if: matrix.os == 'windows-latest'
+
+      # --- native build + tests (example is the build host) ---
+      - name: Pre-create native_assets dir (windows)
+        if: matrix.platform == 'windows' && matrix.build
         shell: bash
         run: mkdir -p example/build/native_assets/windows
-      - name: Native build (windows)
-        if: matrix.os == 'windows-latest'
+      - name: Native build
+        if: matrix.build
+        working-directory: example
+        run: flutter build ${{ matrix.platform }} --release
+      - name: Native frame-geometry tests (gtest)
+        if: matrix.platform == 'windows' && matrix.build
+        shell: bash
+        run: example/build/windows/x64/plugins/window_frame_kit/Release/window_frame_kit_test.exe
+      - name: Integration test (windows)
+        if: matrix.platform == 'windows' && matrix.build
+        working-directory: example
+        run: flutter test integration_test/frame_kit_test.dart -d windows
+      - name: Integration test (macos)
+        if: matrix.platform == 'macos'
+        working-directory: example
+        run: flutter test integration_test/frame_kit_test.dart -d macos
+      - name: Integration test (linux, xvfb + xfwm4)
+        if: matrix.platform == 'linux'
+        working-directory: example
+        env:
+          WFK_HAS_WM: "1"
+        run: |
+          xvfb-run -a -s "-screen 0 1920x1080x24" bash -c '
+            xfwm4 --compositor=off >/dev/null 2>&1 &
+            sleep 2
+            flutter test integration_test/frame_kit_test.dart -d linux'
+
+  beta:
+    name: flutter beta (early warning)
+    runs-on: windows-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v5
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: beta
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test --timeout 90s
+      - shell: bash
+        run: mkdir -p example/build/native_assets/windows
+      - name: Native build
         working-directory: example
         run: flutter build windows --release
-      - name: Install Linux toolchain deps
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev
-      - name: Native build (linux)
-        if: matrix.os == 'ubuntu-latest'
+      - name: Integration test
         working-directory: example
-        run: flutter build linux --release
-      - name: Native build (macos)
-        if: matrix.os == 'macos-latest'
-        working-directory: example
-        run: flutter build macos --release
+        run: flutter test integration_test/frame_kit_test.dart -d windows
 
-  # ③ pana 评分门：Pitfall 4——pana 0.23.x 的 sandbox 在 Windows 盘符路径必崩，仅进 ubuntu。
   pana:
     runs-on: ubuntu-latest
     steps:
@@ -86,16 +145,9 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
-          flutter-version: "3.47.2"
+          flutter-version: "3.47.6"
           cache: true
       - run: dart pub global activate pana
-      # D-08 钉死机制（pana 语义：(max−granted) > threshold 才非零退出——基线本身
-      # 通过，任何进一步降分即红）。Phase 1 基线 150/160 → threshold 10。
-      # Phase 2 重钉（02-01 A3 首推验证，CI run 33906880498）：基线 140/160
-      # → threshold = 160 − 140 = 20。两项已知扣分：① pubspec description 超 180
-      # 字符建议长度（0/10，Phase 5 PUB-04 精简）② 逐字区 lib/src 文件不匹配
-      # tall-style formatter（40/50，D-01/SC5 字节级 verbatim 的结构性代价——
-      # pana 的 format 检查无豁免机制，格式化逐字区即毁 SC5，02-RESEARCH
-      # Pitfall 1/Alternatives 已裁决豁免）。Phase 5 description 精简后按
-      # WINDOWS.md #5 流程重钉为 160 − 新基线。
+      # Threshold 20: verbatim-ported lib/src files keep upstream formatting
+      # (pana format check has no exemption) - see DEVIATIONS #2.
       - run: dart pub global run pana:pana --exit-code-threshold 20 .
