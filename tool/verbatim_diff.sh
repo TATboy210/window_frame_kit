@@ -22,11 +22,9 @@ norm() { sed 's/window_frame_kit/window_manager/g' "$1"; }
 # 13 对普通逐字区文件（main.dart/home.dart 走精确特例；window_options.dart
 # 与 window_manager.dart 自 03-01 起为 customFrame 嫁接偏差区，走下方快照门）
 declare -A DART_PAIRS=(
-  [lib/window_frame_kit.dart]=lib/window_manager.dart
   [lib/src/window_listener.dart]=lib/src/window_listener.dart
   [lib/src/resize_edge.dart]=lib/src/resize_edge.dart
   [lib/src/title_bar_style.dart]=lib/src/title_bar_style.dart
-  [lib/src/utils/calc_window_position.dart]=lib/src/utils/calc_window_position.dart
   [lib/src/widgets/drag_to_move_area.dart]=lib/src/widgets/drag_to_move_area.dart
   [lib/src/widgets/drag_to_resize_area.dart]=lib/src/widgets/drag_to_resize_area.dart
   [lib/src/widgets/virtual_window_frame.dart]=lib/src/widgets/virtual_window_frame.dart
@@ -59,6 +57,8 @@ pinned_diff() { # $1=ours $2=upstream-relative $3=snapshot name
 }
 pinned_diff lib/src/window_options.dart lib/src/window_options.dart window_options.diff
 pinned_diff lib/src/window_manager.dart lib/src/window_manager.dart window_manager.diff
+# 0.3.0: barrel adds the diagnostics export (DEVIATIONS #15)
+pinned_diff lib/window_frame_kit.dart lib/window_manager.dart barrel.diff
 
 # home.dart 唯一额外例外：用户授权移除托盘（DEVIATIONS #7）。
 # 固定已审查版本的归一化 blob，不能任意编辑 example 后仍蒙混过门。
@@ -86,14 +86,14 @@ if [ "$MAIN_ACTUAL" != "$MAIN_EXPECTED" ]; then
 fi
 
 # B. C++ 面——精确残留行数（结构偏离已记 DEVIATIONS.md，改动即重审）
-# plugin.cpp 156 = 原 22 结构偏离 + // FRAME: 嫁接块（03-03 接线 + 2026-09-05
+# plugin.cpp 77 (0.3.0: graft moved into FrameController::HandleTopLevelMessage) ; history: 156 = 原 22 结构偏离 + // FRAME: 嫁接块（03-03 接线 + 2026-09-05
 # 带状重设计：NCCALCSIZE 侧带 + 顶 1px 描边位/顶带自算命中/最大化 clamp/全屏守卫
 # + setCustomFrame handler，DEVIATIONS #10/#11）
 # tr 去除 CR：本地 Windows checkout（autocrlf）与 Linux CI 行尾一致化。
 n1=$(diff <(tr -d '\r' < windows/window_frame_kit_plugin.cpp) <(tr -d '\r' < "$WM/windows/window_manager_plugin.cpp") | grep -c '^[<>]')
 n2=$(diff <(tr -d '\r' < windows/window_manager.cpp) <(tr -d '\r' < "$WM/windows/window_manager.cpp") | grep -c '^[<>]')
-if [ "$n1" -ne 156 ]; then
-  echo "plugin.cpp residue $n1 != 156"
+if [ "$n1" -ne 77 ]; then
+  echo "plugin.cpp residue $n1 != 77"
   fail=1
 fi
 if [ "$n2" -ne 2 ]; then
@@ -102,6 +102,6 @@ if [ "$n2" -ne 2 ]; then
 fi
 
 if [ "$fail" -eq 0 ]; then
-  echo "VERBATIM PROOF OK (13 dart zero-diff + 2 customFrame pinned diffs + 1 pinned example deviation, cpp residue 156+2)"
+  echo "VERBATIM PROOF OK (11 dart zero-diff + 3 pinned diffs + 1 pinned example deviation, cpp residue 77+2)"
 fi
 exit "$fail"
