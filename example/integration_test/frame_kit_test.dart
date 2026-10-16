@@ -149,6 +149,18 @@ Future<void> main() async {
     expect((surface.height - finalSize.height).abs(), lessThanOrEqualTo(2));
   });
 
+  testWidgets('native resize sweep reports telemetry', (tester) async {
+    // The integration binding only renders on pump(), so the engine's
+    // resize wait times out here; this test checks the plumbing. Measure
+    // real numbers in a running app (README, "Resize diagnostics").
+    final stats = await windowManager.debugResizeSweep(steps: 8);
+    // ignore: avoid_print
+    print('frame_kit native sweep: $stats');
+    expect(stats, isNotNull);
+    expect(stats!.steps, greaterThan(0));
+    expect(await windowManager.takeResizeSyncStats(), isNotNull);
+  }, skip: !Platform.isWindows);
+
   testWidgets('custom frame toggles off and back on', (tester) async {
     await windowManager.setCustomFrame(false);
     expect(await windowManager.isCustomFrame(), isFalse);

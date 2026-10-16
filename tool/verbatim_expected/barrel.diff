@@ -1,2 +1,3 @@
-1d0
+1,2d0
 < export 'src/diagnostics/resize_diagnostics.dart';
+< export 'src/diagnostics/resize_sync_stats.dart';

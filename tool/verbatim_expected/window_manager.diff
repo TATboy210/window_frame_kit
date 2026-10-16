@@ -1,4 +1,6 @@
-105,133d104
+9d8
+< import 'package:window_manager/src/diagnostics/resize_sync_stats.dart';
+106,113d104
 <     // // FRAME: coexistence guard (0.3.0) - warn once if the original
 <     // window_manager plugin is also registered in this app.
 <     if (!_conflictChecked) {
@@ -7,8 +9,7 @@
 <         debugPrint(kWindowManagerConflictWarning);
 <       }
 <     }
-<   }
-< 
+116,139d106
 <   bool _conflictChecked = false;
 < 
 <   /// Returns `true` when the original `window_manager` plugin is registered
@@ -28,11 +29,12 @@
 <       // The foreign plugin exists but rejected the probe: still a conflict.
 <       return true;
 <     }
-136,138d106
+<   }
+< 
 <   final MethodChannel _foreignWindowManagerChannel =
 <       const MethodChannel('window_manager');
 < 
-168,174d135
+169,175d135
 <     // // FRAME: graft customFrame — frame takeover must land after titleBarStyle
 <     // and before fullscreen/maximized state restore so the native subclass is
 <     // installed before any geometry-affecting state transition.
@@ -40,7 +42,7 @@
 <       await setCustomFrame(options!.customFrame!);
 <     }
 < 
-800,827d760
+801,862d760
 < 
 <   /// // FRAME: Enables or disables the native custom frame takeover.
 <   ///
@@ -69,7 +71,41 @@
 <   Future<bool> isCustomFrame() async {
 <     return await _channel.invokeMethod<bool>('isCustomFrame') ?? false;
 <   }
-829,837d761
+< 
+<   /// Returns and resets the native resize synchronization telemetry
+<   /// collected since the previous call, or null when unavailable (custom
+<   /// frame off, or not Windows).
+<   ///
+<   /// @platforms windows
+<   Future<ResizeSyncStats?> takeResizeSyncStats() async {
+<     if (!Platform.isWindows) {
+<       return null;
+<     }
+<     return ResizeSyncStats.fromMap(
+<       await _channel.invokeMethod<Object?>('takeResizeSyncStats'),
+<     );
+<   }
+< 
+<   /// Measurement harness: performs [steps] back-to-back native window resizes
+<   /// (alternating all four edges, no input simulation) with the view
+<   /// pre-sync on or off, restores the window, and returns the telemetry.
+<   ///
+<   /// @platforms windows
+<   Future<ResizeSyncStats?> debugResizeSweep({
+<     int steps = 200,
+<     bool preSync = true,
+<   }) async {
+<     if (!Platform.isWindows) {
+<       return null;
+<     }
+<     return ResizeSyncStats.fromMap(
+<       await _channel.invokeMethod<Object?>('debugResizeSweep', {
+<         'steps': steps,
+<         'preSync': preSync,
+<       }),
+<     );
+<   }
+864,872d761
 < 
 < /// Logged by [WindowManager.ensureInitialized] when the original
 < /// `window_manager` plugin is registered in the same app.
