@@ -84,8 +84,17 @@ inline void FrameClientRect(RECT* rect, FrameWindowState state,
     case FrameWindowState::kNormal:
       rect->top -= 1;
       return;
-    case FrameWindowState::kMaximized:
+    case FrameWindowState::kMaximized: {
+      // Work area clipped to the proposed window rect: a maximumSize
+      // constraint can make the maximized window smaller than the work
+      // area, and the client must never extend past the window.
+      const RECT window = *rect;
       *rect = workArea;
+      rect->left = rect->left > window.left ? rect->left : window.left;
+      rect->top = rect->top > window.top ? rect->top : window.top;
+      rect->right = rect->right < window.right ? rect->right : window.right;
+      rect->bottom =
+          rect->bottom < window.bottom ? rect->bottom : window.bottom;
       if (autoHideEdges & kFrameEdgeLeft) {
         rect->left += 1;
       }
@@ -99,6 +108,7 @@ inline void FrameClientRect(RECT* rect, FrameWindowState state,
         rect->bottom -= 1;
       }
       return;
+    }
     case FrameWindowState::kFullscreen:
       return;
   }
@@ -201,6 +211,33 @@ inline LONG_PTR FrameEnabledStyle(LONG_PTR style) {
 /// bits the window had before the frame was enabled.
 inline LONG_PTR FrameRestoredStyle(LONG_PTR current, LONG_PTR beforeEnable) {
   return current | (beforeEnable & static_cast<LONG_PTR>(WS_CAPTION));
+}
+
+/// Client size the frame will assign to a normal-state window of
+/// `windowWidth` x `windowHeight` (see FrameClientRect: the client is the
+/// whole window plus the 1px row above it). Used to tell the Flutter view
+/// its next size before the window geometry changes.
+inline SIZE FrameNormalClientSize(LONG windowWidth, LONG windowHeight) {
+  RECT rect = {0, 0, windowWidth, windowHeight};
+  FrameClientRect(&rect, FrameWindowState::kNormal, rect, 0);
+  return {rect.right - rect.left, rect.bottom - rect.top};
+}
+
+/// Number of DWM composition instants (vblank + k * period) inside the
+/// half-open interval (from, to], all in QPC ticks. A view whose surface
+/// size differs from its HWND size during such an instant is composed
+/// stretched - this counts those frames. Returns 0 for empty/invalid input.
+inline LONGLONG FrameVblanksBetween(LONGLONG from, LONGLONG to,
+                                     LONGLONG vblank, LONGLONG period) {
+  if (period <= 0 || to <= from) {
+    return 0;
+  }
+  // floor((t - vblank) / period) with correct rounding for negatives.
+  const auto index = [vblank, period](LONGLONG t) {
+    const LONGLONG d = t - vblank;
+    return d >= 0 ? d / period : -((-d + period - 1) / period);
+  };
+  return index(to) - index(from);
 }
 
 /// Per-OS DWM policy applied while the custom frame is enabled.

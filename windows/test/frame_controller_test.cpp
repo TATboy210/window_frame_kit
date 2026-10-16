@@ -131,6 +131,34 @@ TEST(FrameClientRect, MaximizedOnSecondMonitorUsesThatWorkArea) {
   EXPECT_EQ(r.right, 4480);
 }
 
+TEST(FrameClientRect, MaximizedNeverExceedsAConstrainedWindow) {
+  // setMaximumSize(1200x800): the maximized window is smaller than the work
+  // area; the client must stay inside the window.
+  RECT r = {0, 0, 1200, 800};
+  FrameClientRect(&r, FrameWindowState::kMaximized, kWork, 0);
+  EXPECT_EQ(r.left, 0);
+  EXPECT_EQ(r.top, 0);
+  EXPECT_EQ(r.right, 1200);
+  EXPECT_EQ(r.bottom, 800);
+}
+
+TEST(FrameNormalClientSize, IsWindowSizePlusTopOverhang) {
+  const SIZE s = FrameNormalClientSize(800, 600);
+  EXPECT_EQ(s.cx, 800);
+  EXPECT_EQ(s.cy, 601);
+}
+
+TEST(FrameVblanksBetween, CountsCompositionInstantsInInterval) {
+  // vblank at 1000, period 100: instants ..., 900, 1000, 1100, 1200, ...
+  EXPECT_EQ(FrameVblanksBetween(1010, 1090, 1000, 100), 0);  // inside one frame
+  EXPECT_EQ(FrameVblanksBetween(1090, 1110, 1000, 100), 1);  // crosses 1100
+  EXPECT_EQ(FrameVblanksBetween(1000, 1100, 1000, 100), 1);  // (from, to]
+  EXPECT_EQ(FrameVblanksBetween(1050, 1350, 1000, 100), 3);
+  EXPECT_EQ(FrameVblanksBetween(850, 950, 1000, 100), 1);    // before vblank
+  EXPECT_EQ(FrameVblanksBetween(950, 950, 1000, 100), 0);
+  EXPECT_EQ(FrameVblanksBetween(900, 1200, 1000, 0), 0);     // no timing
+}
+
 TEST(FrameClientRect, FullscreenIsUntouched) {
   RECT r = {0, 0, 1920, 1080};
   FrameClientRect(&r, FrameWindowState::kFullscreen, kWork, kFrameEdgeBottom);
