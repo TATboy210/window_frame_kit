@@ -21,8 +21,21 @@ deviation is tracked in [DEVIATIONS.md](DEVIATIONS.md).
 - https://github.com/bitsdojo/bitsdojo_window
 - Copyright (c) 2020-2021 Bogdan Hobeanu
 - License: MIT
-- Scope: the frame-takeover concepts (borderless `WM_NCCALCSIZE` route and
-  native `WM_NCHITTEST` edge resizing) are re-implemented in
-  `windows/frame_controller.{h,cpp}`; bitsdojo's unconditional
-  `return 0` in `WM_GETMINMAXINFO` is deliberately NOT reproduced
-  (cooperative merge instead).
+- Scope: the frame-takeover techniques are re-implemented (no code copied
+  verbatim) in `windows/frame_geometry.h` and
+  `windows/frame_controller.{h,cpp}`: the full-client `WM_NCCALCSIZE`
+  mapping with the client top pushed 1px above the window plus a 1px top
+  `DwmExtendFrameIntoClientArea` margin, `WM_NCHITTEST` resize bands sized
+  `SM_CXSIZEFRAME + SM_CXPADDEDBORDER` for the window DPI, the
+  FLUTTERVIEW child returning `HTTRANSPARENT` on band hits, and swallowing
+  `WM_ERASEBKGND`. bitsdojo's unconditional `return 0` in
+  `WM_GETMINMAXINFO` is deliberately NOT reproduced.
+
+## Techniques referenced (no code copied)
+
+- Windows Terminal (MIT, (c) Microsoft Corporation) and Chromium (BSD-3,
+  (c) The Chromium Authors): maximized client = monitor work area with
+  1px left free on auto-hide taskbar edges (`ABM_GETAUTOHIDEBAREX`), and
+  `WVR_REDRAW` from `WM_NCCALCSIZE` during an interactive size-move.
+  These are publicly documented Win32 behaviors re-implemented from the
+  description; no source from either project is included.
