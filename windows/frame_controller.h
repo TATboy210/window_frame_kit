@@ -71,6 +71,7 @@ class FrameController {
 
   bool enabled_ = false;
   bool interactive_sizing_ = false;
+  LONG_PTR style_before_enable_ = 0;
   HWND root_ = nullptr;
   HWND child_ = nullptr;
   std::function<bool()> is_resizable_;

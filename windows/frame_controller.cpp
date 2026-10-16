@@ -98,6 +98,11 @@ bool FrameController::Enable(HWND root, HWND child,
       child_ = child;
     }
   }
+  if (!enabled_) {
+    style_before_enable_ = ::GetWindowLongPtr(root_, GWL_STYLE);
+    ::SetWindowLongPtr(root_, GWL_STYLE,
+                       FrameEnabledStyle(style_before_enable_));
+  }
   enabled_ = true;
   ApplyDwmPolicy(true);
   // Frame-only recalc so the client mapping applies on the next paint.
@@ -114,6 +119,10 @@ void FrameController::Disable() {
   RemoveChildHook();
   if (root_ != nullptr && ::IsWindow(root_)) {
     ApplyDwmPolicy(false);
+    ::SetWindowLongPtr(
+        root_, GWL_STYLE,
+        FrameRestoredStyle(::GetWindowLongPtr(root_, GWL_STYLE),
+                           style_before_enable_));
     ::SetWindowPos(root_, nullptr, 0, 0, 0, 0, kFrameChangedFlags);
   }
   root_ = nullptr;

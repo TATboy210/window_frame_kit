@@ -40,6 +40,32 @@ TEST(FrameOsPolicy, ShadowMarginIsOnePixelTopOnBothOses) {
   }
 }
 
+// --- Window style ----------------------------------------------------------
+
+TEST(FrameStyle, EnableDropsOnlyCaption) {
+  const LONG_PTR style = WS_OVERLAPPEDWINDOW | WS_VISIBLE | WS_CLIPCHILDREN;
+  const LONG_PTR on = FrameEnabledStyle(style);
+  EXPECT_EQ(on & WS_CAPTION, 0);
+  EXPECT_NE(on & WS_THICKFRAME, 0);
+  EXPECT_NE(on & WS_MAXIMIZEBOX, 0);
+  EXPECT_NE(on & WS_MINIMIZEBOX, 0);
+  EXPECT_NE(on & WS_SYSMENU, 0);
+  EXPECT_NE(on & WS_VISIBLE, 0);
+  // Still not mistaken for an external fullscreen style.
+  EXPECT_FALSE(IsExternalFullscreenStyle(on));
+}
+
+TEST(FrameStyle, RestoreKeepsLaterChangesAndReturnsCaption) {
+  const LONG_PTR before = WS_OVERLAPPEDWINDOW | WS_VISIBLE;
+  // setResizable(false) cleared WS_THICKFRAME while the frame was on.
+  const LONG_PTR current = FrameEnabledStyle(before) & ~WS_THICKFRAME;
+  const LONG_PTR restored = FrameRestoredStyle(current, before);
+  EXPECT_EQ(restored & WS_CAPTION, WS_CAPTION);
+  EXPECT_EQ(restored & WS_THICKFRAME, 0);
+  // A window that never had a caption does not gain one.
+  EXPECT_EQ(FrameRestoredStyle(WS_POPUP, WS_POPUP) & WS_CAPTION, 0);
+}
+
 // --- State resolution ------------------------------------------------------
 
 TEST(FrameState, FullscreenWinsOverMaximized) {

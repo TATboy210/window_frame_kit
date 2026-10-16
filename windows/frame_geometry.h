@@ -185,13 +185,32 @@ inline bool IsExternalFullscreenStyle(LONG_PTR style) {
   return (style & WS_OVERLAPPEDWINDOW) == 0;
 }
 
+/// Window style while the custom frame is enabled: WS_CAPTION removed,
+/// everything else (WS_THICKFRAME for native resize/Aero Snap, the
+/// min/max boxes for taskbar + Win+Arrow behavior) kept. With WS_CAPTION
+/// present, DefWindowProc repaints a themed caption/border inside the
+/// interactive resize loop even though the client covers the whole window
+/// (observed on this package's 0.1.0, fixed in 0.1.1 - the
+/// Chromium/Electron frameless recipe).
+inline LONG_PTR FrameEnabledStyle(LONG_PTR style) {
+  return style & ~static_cast<LONG_PTR>(WS_CAPTION);
+}
+
+/// Style to restore on disable: the current style (which may have been
+/// changed meanwhile by setResizable/fullscreen) plus whatever WS_CAPTION
+/// bits the window had before the frame was enabled.
+inline LONG_PTR FrameRestoredStyle(LONG_PTR current, LONG_PTR beforeEnable) {
+  return current | (beforeEnable & static_cast<LONG_PTR>(WS_CAPTION));
+}
+
 /// Per-OS DWM policy applied while the custom frame is enabled.
 struct FrameDwmPolicy {
   /// DwmExtendFrameIntoClientArea margins: 1px top keeps the drop shadow
   /// (paired with the `top -= 1` client overhang, see FrameClientRect).
   MARGINS margins;
-  /// Win11 only: request DWMWCP_ROUND corners explicitly (the attribute does
-  /// not exist before build 22000, so it is never sent to Win10).
+  /// Win11 only: request DWMWCP_ROUND corners explicitly - a window without
+  /// WS_CAPTION is not rounded by default. The attribute does not exist
+  /// before build 22000, so it is never sent to Win10.
   bool requestRoundCorners;
 };
 
