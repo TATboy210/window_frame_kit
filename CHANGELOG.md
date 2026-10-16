@@ -4,6 +4,71 @@ All notable changes to this project are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com) and the
 project adheres to [Semantic Versioning](https://semver.org).
 
+## 0.3.0 - 2026-10-16
+
+### Breaking
+
+- Requires **Flutter 3.47 / Dart 3.13** and **macOS 12** (unchanged) because
+  `screen_retriever` was bumped to `^0.3.0` (nativeapi based). Window
+  placement (`WindowOptions(center: true)`, `setAlignment`) now reads
+  `DisplayManager` directly; results for named alignments are unchanged.
+- **Windows `customFrame` redesign.** The whole window is client area
+  again (0.2.x kept real non-client bands on the left/right/bottom and a
+  1px strip on top). Consequences:
+  - **Windows 10 shows no accent/theme-colored border line** on any edge
+    (normal, maximized, inactive) - the 0.2.x 1px top strip was exactly
+    that line.
+  - **Windows 11** keeps the DWM rounded corners and 1px border
+    (`DWMWCP_ROUND` is requested only on build >= 22000, detected at
+    runtime via `RtlGetVersion`).
+  - `WS_CAPTION` is removed while the frame is enabled and restored on
+    disable (code reading `GWL_STYLE` sees the difference).
+  - The `WM_GETMINMAXINFO` interception is gone; the upstream
+    window_manager branch still applies `setMinimumSize` /
+    `setMaximumSize`. If you relied on 0.2.x clamping behavior there,
+    nothing changes for normal apps.
+
+### Added
+
+- **Equal resize thickness** on all four edges and corners on Windows
+  (`SM_CXSIZEFRAME + SM_CXPADDEDBORDER` for the window's current DPI,
+  so it follows `WM_DPICHANGED` and multi-monitor moves). The Flutter
+  view is subclassed (`SetWindowSubclass`) and returns `HTTRANSPARENT` on
+  band hits so the top level answers. No bands when maximized,
+  fullscreen or non-resizable.
+- Maximized windows fill the monitor work area exactly; on monitors with an
+  auto-hide taskbar 1px is left free on that edge so the taskbar can still
+  be revealed (Windows Terminal / Chromium recipe).
+- Smoother interactive resize: `WM_ERASEBKGND` swallowed, `WVR_REDRAW`
+  during size-move (no stale-pixel BitBlt), no non-client repaint on
+  activation changes.
+- `windowManager.isCustomFrame()` (all platforms).
+- `windowManager.detectWindowManagerConflict()`; `ensureInitialized()`
+  logs a warning once when the original `window_manager` plugin is also
+  registered.
+- `ResizeDiagnostics` (debug/profile, opt-in): frame times and
+  surface-vs-window size mismatches during interactive resize.
+- Native gtest suite for the pure frame geometry
+  (`windows/frame_geometry.h`): Win10/Win11 policy, normal / maximized /
+  fullscreen, DPI 96-192, edges vs corners.
+- Example integration test (`example/integration_test/frame_kit_test.dart`)
+  run in CI on Windows, macOS and Linux (xvfb).
+- CI: windows-11-arm, macos-15-intel, Flutter beta early-warning job;
+  tag-triggered pub.dev publishing via OIDC; SECURITY.md, issue templates.
+
+### Known limitations
+
+- Windows 11 snap layouts flyout on a self-drawn maximize button is not
+  provided (needs `HTMAXBUTTON` hit-testing over a Dart-drawn button);
+  Win+Z and drag-to-top-edge snapping work.
+
+## 0.2.2 - 2026-09-06
+
+### Fixed
+
+- **Windows**: corner codes (`HTTOPLEFT` / `HTTOPRIGHT`) win inside the top
+  band, so top-corner resizing behaves like the native side-band corners.
+
 ## 0.2.1 - 2026-09-05
 
 ### Fixed
