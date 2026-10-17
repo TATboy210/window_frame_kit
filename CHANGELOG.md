@@ -4,6 +4,23 @@ All notable changes to this project are documented in this file.
 The format follows [Keep a Changelog](https://keepachangelog.com) and the
 project adheres to [Semantic Versioning](https://semver.org).
 
+## 0.3.1 - 2026-10-17
+
+### Fixed
+
+- **Windows `customFrame`: border flicker while moving the window.** During
+  any interactive size-move (`WM_ENTERSIZEMOVE` is also sent for a plain
+  caption drag) the `WM_WINDOWPOSCHANGING` handler forced `SWP_NOCOPYBITS`
+  whenever the incoming flags lacked `SWP_NOSIZE`. The move loop passes the
+  unchanged `cx`/`cy` without that flag, so every drag step discarded the
+  whole window surface and repainted the top-level window and the Flutter
+  view. A programmatic 60-step move sweep measured 60 `WM_NCPAINT` /
+  `WM_ERASEBKGND` / `WM_PAINT` on both the top-level and the view HWND
+  (0.3.0) versus 0 now (bitsdojo_window baseline: 1). The flag and the view
+  pre-sync are now applied only when the proposed size really differs from
+  the current window size (`FrameIsSizeChange`, unit-tested). Resizing is
+  unchanged.
+
 ## 0.3.0 - 2026-10-16
 
 ### Breaking

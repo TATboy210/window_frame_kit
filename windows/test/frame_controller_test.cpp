@@ -176,6 +176,20 @@ TEST(FrameNcCalcSizeResult, RedrawOnlyWhileInteractivelySizingNormal) {
   EXPECT_EQ(FrameNcCalcSizeResult(FrameWindowState::kFullscreen, true), 0);
 }
 
+TEST(FrameIsSizeChange, PureMoveIsNotASizeChangeEvenWithoutNoSize) {
+  // Interactive move loop / SetWindowPos with the unchanged size: no
+  // SWP_NOSIZE yet at WM_WINDOWPOSCHANGING, but nothing must be discarded.
+  EXPECT_FALSE(FrameIsSizeChange(SWP_NOZORDER, 800, 600, 800, 600));
+  EXPECT_FALSE(FrameIsSizeChange(SWP_NOSIZE | SWP_NOZORDER, 800, 600, 0, 0));
+  EXPECT_FALSE(FrameIsSizeChange(SWP_NOSIZE, 800, 600, 900, 700));
+}
+
+TEST(FrameIsSizeChange, AnyDimensionChangeIsASizeChange) {
+  EXPECT_TRUE(FrameIsSizeChange(0, 800, 600, 801, 600));
+  EXPECT_TRUE(FrameIsSizeChange(0, 800, 600, 800, 599));
+  EXPECT_TRUE(FrameIsSizeChange(SWP_NOMOVE, 800, 600, 1000, 700));
+}
+
 // --- Band thickness per DPI -------------------------------------------------
 
 TEST(FrameResizeBand, ScalesWithDpi) {

@@ -127,6 +127,22 @@ inline LRESULT FrameNcCalcSizeResult(FrameWindowState state,
   return 0;
 }
 
+/// Whether a WM_WINDOWPOSCHANGING step really changes the window size.
+/// SWP_NOSIZE is NOT a reliable "pure move" signal at that point: the
+/// interactive move loop and SetWindowPos callers that pass the unchanged
+/// cx/cy reach WM_WINDOWPOSCHANGING without it (the system only adds it
+/// afterwards), so the proposed size is compared with the current one.
+/// Moves must stay untouched: forcing SWP_NOCOPYBITS on them discards the
+/// whole window surface on every drag step, which repaints root + Flutter
+/// view each step and shows as a flickering border while moving.
+inline bool FrameIsSizeChange(UINT flags, LONG currentWidth,
+                              LONG currentHeight, int cx, int cy) {
+  if (flags & SWP_NOSIZE) {
+    return false;
+  }
+  return cx != currentWidth || cy != currentHeight;
+}
+
 /// Resize hit-test over the window rect (screen coordinates). Every edge and
 /// corner uses the same `band`, so all four edges are equally thick.
 /// Maximized / fullscreen / non-resizable windows never report a resize

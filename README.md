@@ -25,7 +25,7 @@ Desktop only — there are no mobile or web targets.
 
 ```yaml
 dependencies:
-  window_frame_kit: ^0.3.0
+  window_frame_kit: ^0.3.1
 ```
 
 Requires Flutter 3.47+ (Dart 3.13+). Do **not** also depend on

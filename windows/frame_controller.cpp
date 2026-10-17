@@ -237,11 +237,19 @@ std::optional<LRESULT> FrameController::HandleTopLevelMessage(
     case WM_WINDOWPOSCHANGING:
       if (lParam != 0) {
         auto* pos = reinterpret_cast<WINDOWPOS*>(lParam);
-        PreSyncViewSize(*pos);
-        if (interactive_sizing_ && pre_sync_enabled_ &&
-            !(pos->flags & SWP_NOSIZE)) {
+        // Pure moves must pass through untouched (see FrameIsSizeChange).
+        RECT current = {};
+        const bool sizeChange =
+            ::GetWindowRect(root_, &current) &&
+            FrameIsSizeChange(pos->flags, current.right - current.left,
+                              current.bottom - current.top, pos->cx, pos->cy);
+        if (sizeChange) {
+          PreSyncViewSize(*pos);
+        }
+        if (interactive_sizing_ && pre_sync_enabled_ && sizeChange) {
           // Never let the system BitBlt the old client pixels to the new
-          // origin (left/top edge drags): the view repaints anyway.
+          // origin (left/top edge drags): the view repaints anyway. Never
+          // on a pure move (see FrameIsSizeChange).
           pos->flags |= SWP_NOCOPYBITS;
         }
       }
@@ -325,12 +333,7 @@ void FrameController::PreSyncViewSize(const WINDOWPOS& pos) {
   if (CurrentState() != FrameWindowState::kNormal || ::IsIconic(root_)) {
     return;
   }
-  RECT current = {};
-  if (!::GetWindowRect(root_, &current) ||
-      (current.right - current.left == pos.cx &&
-       current.bottom - current.top == pos.cy)) {
-    return;  // Pure move: nothing to pre-sync.
-  }
+  // Pure moves never get here (the caller checks FrameIsSizeChange).
   const SIZE client = FrameNormalClientSize(pos.cx, pos.cy);
   if (client.cx == engine_size_.cx && client.cy == engine_size_.cy) {
     return;
